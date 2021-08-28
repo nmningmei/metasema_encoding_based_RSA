@@ -133,3 +133,6 @@ dmypy.json
 
 # results folder
 results/
+
+# model folder
+models/
