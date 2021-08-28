@@ -18,6 +18,9 @@ import pandas as pd
 
 from nilearn.input_data import NiftiMasker
 
+from sklearn import linear_model,preprocessing,metrics,model_selection as skms
+from sklearn.pipeline import make_pipeline
+
 # parameters in the header
 sub                 = '123'
 working_dir         = f'../data/Searchlight/{sub}'
