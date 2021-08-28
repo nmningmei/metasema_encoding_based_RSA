@@ -5,6 +5,7 @@ Created on Sat Aug 28 09:22:18 2021
 
 @author: nmei
 """
+import os
 
 import pandas as pd
 import numpy  as np
@@ -31,7 +32,7 @@ def candidates(model_name,pretrained = True,):
                                              progress               = False,),
             # squeezenet      = Tmodels.squeezenet1_1(pretrained      = pretrained,
             #                                        progress         = False,),
-            vgg19_bn        = Tmodels.vgg19_bn(pretrained           = pretrained,
+            vgg19           = Tmodels.vgg19_bn(pretrained           = pretrained,
                                               progress              = False,),
             densenet169     = Tmodels.densenet169(pretrained        = pretrained,
                                                  progress           = False,),
@@ -53,7 +54,7 @@ def candidates(model_name,pretrained = True,):
 def define_type(model_name):
     model_type          = dict(
             alexnet     = 'simple',
-            vgg19_bn    = 'simple',
+            vgg19       = 'simple',
             densenet169 = 'simple',
             inception   = 'inception',
             mobilenet   = 'simple',
@@ -222,14 +223,14 @@ def build_model(pretrain_model_name,
                             )
     return model_to_train
 
-def define_augmentations(image_resize = 128,noise_level = None):
+def define_augmentations(image_resize = 128,noise_level = None,do_augmentations = True):
     augmentations = {
-        'train':simple_augmentations(image_resize,noise_level),
-        'valid':simple_augmentations(image_resize,noise_level),
+        'train':simple_augmentations(image_resize,noise_level,do_augmentations),
+        'valid':simple_augmentations(image_resize,noise_level,do_augmentations),
     }
     return augmentations
 
-def noise_fuc(x,noise_level = 1):
+def noise_fuc(x,noise_level = 1,):
     """
     add guassian noise to the images during agumentation procedures
 
@@ -241,26 +242,33 @@ def noise_fuc(x,noise_level = 1):
     generator = torch.distributions.normal.Normal(0,noise_level)
     return x + generator.sample(x.shape)
 
-def simple_augmentations(image_resize = 128,noise_level = None):
-    if noise_level is not None:
-        return transforms.Compose([
-    transforms.Resize((image_resize,image_resize)),
-    transforms.RandomHorizontalFlip(p = 0.5),
-    transforms.RandomRotation(45,),
-    transforms.RandomVerticalFlip(p = 0.5,),
-    transforms.ToTensor(),
-    transforms.Lambda(lambda x:noise_fuc(x,noise_level)),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+def simple_augmentations(image_resize = 128,noise_level = None,do_augmentations = True):
+    if do_augmentations:
+        if noise_level is not None:
+            return transforms.Compose([
+        transforms.Resize((image_resize,image_resize)),
+        transforms.RandomHorizontalFlip(p = 0.5),
+        transforms.RandomRotation(45,),
+        transforms.RandomVerticalFlip(p = 0.5,),
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x:noise_fuc(x,noise_level)),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        else:
+            return transforms.Compose([
+        transforms.Resize((image_resize,image_resize)),
+        transforms.RandomHorizontalFlip(p = 0.5),
+        transforms.RandomRotation(45,),
+        transforms.RandomVerticalFlip(p = 0.5,),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
     else:
         return transforms.Compose([
-    transforms.Resize((image_resize,image_resize)),
-    transforms.RandomHorizontalFlip(p = 0.5),
-    transforms.RandomRotation(45,),
-    transforms.RandomVerticalFlip(p = 0.5,),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+            transforms.Resize((image_resize,image_resize)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
     
 class customizedDataset(ImageFolder):
     def __getitem__(self, idx):
@@ -276,6 +284,7 @@ def data_loader(data_root:str,
                 num_workers:int             = 2,
                 shuffle:bool                = True,
                 return_path:bool            = False,
+                drop_last:bool              = False,
                 )->data.DataLoader:
     """
     Create a batch data loader from a given image folder.
@@ -330,6 +339,7 @@ def data_loader(data_root:str,
                 batch_size                  = batch_size,
                 num_workers                 = num_workers,
                 shuffle                     = shuffle,
+                drop_last                   = drop_last,
                 )
     return loader
 
@@ -383,10 +393,14 @@ def train_loop(net,
     dataloader: torch.data.DataLoader
         dataloader to feed
     device:str or torch.device, where the training happens
-    idx_epoch:int, for print
-    print_train:Boolean, debug tool
-    l2_lambda:float, L2 regularization lambda term
-    l1_lambda:float, L1 regularization lambdd term
+    idx_epoch:int
+        for print
+    print_train:Boolean
+        debug tool
+    l2_lambda:float
+        L2 regularization lambda term
+    l1_lambda:float
+        L1 regularization alpha term
 
     Outputs
     ----------------
@@ -411,37 +425,36 @@ def train_loop(net,
         idx_shuffle         = np.random.choice(features.shape[0],features.shape[0],replace = False)
         features            = features[idx_shuffle]
         labels              = labels[idx_shuffle]
-
-        if ii + 1 <= len(dataloader): # drop last
-            # load the data to memory
-            inputs      = Variable(features).to(device)
-            labels      = labels.to(device)
-            # one of the most important steps, reset the gradients
-            optimizer.zero_grad()
-            # compute the outputs
-            outputs,_   = net(inputs)
-            # compute the losses
-            outputs = outputs
-            loss_batch  = loss_func(outputs,labels)
+        
+        # load the data to memory
+        inputs      = Variable(features).to(device)
+        labels      = labels.to(device)
+        # one of the most important steps, reset the gradients
+        optimizer.zero_grad()
+        # compute the outputs
+        outputs,_   = net(inputs)
+        # compute the losses
+        outputs = outputs
+        loss_batch  = loss_func(outputs,labels)
+        
+        # add L2 loss to the weights
+        if l2_lambda > 0:
+            weight_norm = torch.norm(list(net.parameters())[-4],2)
+            loss_batch  += l2_lambda * weight_norm
+        # add L1 loss to the weights
+        if l1_lambda > 0:
+            weight_norm = torch.norm(list(net.parameters())[-4],1)
+            loss_batch  += l1_lambda * weight_norm
+        
+        # backpropagation
+        loss_batch.backward()
+        # modify the weights
+        optimizer.step()
+        # record the training loss of a mini-batch
+        train_loss  += loss_batch.data
+        if print_train:
+            iterator.set_description(f'epoch {idx_epoch+1}-{ii + 1:3.0f}/{100*(ii+1)/len(dataloader):2.3f}%,loss = {train_loss/(ii+1):.6f}')
             
-            # add L2 loss to the weights
-            if l2_lambda > 0:
-                weight_norm = torch.norm(list(net.parameters())[-4],2)
-                loss_batch  += l2_lambda * weight_norm
-            # add L1 loss to the weights
-            if l1_lambda > 0:
-                weight_norm = torch.norm(list(net.parameters())[-4],1)
-                loss_batch  += l1_lambda * weight_norm
-            
-            # backpropagation
-            loss_batch.backward()
-            # modify the weights
-            optimizer.step()
-            # record the training loss of a mini-batch
-            train_loss  += loss_batch.data
-            if print_train:
-                iterator.set_description(f'epoch {idx_epoch+1}-{ii + 1:3.0f}/{100*(ii+1)/len(dataloader):2.3f}%,loss = {train_loss/(ii+1):.6f}')
-                
     return train_loss/(ii+1)
 
 def validation_loop(net,
@@ -467,21 +480,19 @@ def validation_loop(net,
         if verbose == 0:
             iterator = enumerate(dataloader)
         else:
-            iterator        = tqdm(enumerate(dataloader))
+            iterator    = tqdm(enumerate(dataloader))
         for ii,(features,labels) in iterator:
-            if ii + 1 <= len(dataloader):
-                # load the data to memory
-                inputs      = Variable(features).to(device)
-                labels      = labels.to(device)
-                # compute the outputs
-                outputs,feature_   = net(inputs)
-                # compute the losses
-                loss_batch  = loss_func(outputs,labels)
-                # record the validation loss of a mini-batch
-                valid_loss  += loss_batch.data
-                denominator = ii
-
-                
+            # load the data to memory
+            inputs      = Variable(features).to(device)
+            labels      = labels.to(device)
+            # compute the outputs
+            outputs,feature_   = net(inputs)
+            # compute the losses
+            loss_batch  = loss_func(outputs,labels)
+            # record the validation loss of a mini-batch
+            valid_loss  += loss_batch.data
+            denominator = ii
+            
         valid_loss = valid_loss / (denominator + 1)
     return valid_loss
 
@@ -490,17 +501,17 @@ def train_and_validation(
         f_name,
         loss_func,
         optimizer,
-        image_resize = 128,
-        device = 'cpu',
-        batch_size = 8,
-        n_epochs = int(3e3),
-        print_train = True,
-        patience = 5,
-        train_root = '',
-        valid_root = '',
-        noise_level = None,
-        l1_term = 0,
-        l2_term = 0,
+        image_resize    = 128,
+        device          = 'cpu',
+        batch_size      = 8,
+        n_epochs        = int(3e3),
+        print_train     = True,
+        patience        = 5,
+        train_root      = '',
+        valid_root      = '',
+        noise_level     = None,
+        l1_term         = 0,
+        l2_term         = 0,
         ):
     """
     This function is to train a new CNN model on clear images
@@ -510,22 +521,35 @@ def train_and_validation(
     
     Arguments
     ---------------
-    model_to_train:torch.nn.Module, a nn.Module class
-    f_name:string, the name of the model that is to be trained
-    output_activation:torch.nn.activation, the activation function that is used
+    model_to_train:torch.nn.Module
+        a nn.Module class
+    f_name:string
+        the name of the model that is to be trained
+    output_activation:torch.nn.activation
+        the activation function that is used
         to apply non-linearity to the output layer
-    loss_func:torch.nn.modules.loss, loss function
-    optimizer:torch.optim, optimizer
-    image_resize:int, default = 128, the number of pixels per axis for the image
+    loss_func:torch.nn.modules.loss
+        loss function
+    optimizer:torch.optim
+        optimizer
+    image_resize:int, default = 128
+        the number of pixels per axis for the image
         to be resized to
-    device:string or torch.device, default = "cpu", where to train model
-    batch_size:int, default = 8, batch size
-    n_epochs:int, default = int(3e3), the maximum number of epochs for training
-    print_train:bool, default = True, whether to show verbose information
-    patience:int, default = 5, the number of epochs the model is continuely trained
+    device:string or torch.device
+        default = "cpu", where to train model
+    batch_size:int, default = 8,
+        batch size
+    n_epochs:int, default = int(3e3)
+        the maximum number of epochs for training
+    print_train:bool, default = True
+        whether to show verbose information
+    patience:int, default = 5
+        the number of epochs the model is continuely trained
         when the validation loss does not change
-    train_root:string, default = '', the directory of data for training
-    valid_root:string, default = '', the directory of data for validation
+    train_root:string, default = ''
+        the directory of data for training
+    valid_root:string, default = ''
+        the directory of data for validation
     
     Output
     -----------------
@@ -589,3 +613,39 @@ def train_and_validation(
         if (len(losses) > patience) and (len(set(losses[-patience:])) == 1):
             break
     return model_to_train
+
+def extract_cv_features(net,
+                        image_dir,
+                        image_resize = 128,
+                        noise_level = None,
+                        do_augmentations = False,
+                        ):
+    from tqdm import tqdm
+    augmentations = define_augmentations(image_resize = image_resize,
+                                         noise_level = noise_level,
+                                         do_augmentations = False)
+    image_loader = data_loader(
+        data_root               = image_dir,
+        augmentations           = augmentations['valid'],
+        batch_size              = 1,
+        num_workers             = 1,
+        shuffle                 = False,
+        return_path             = False,
+        )
+    features = []
+    df = dict(labels = [],
+              targets = [])
+    for i, (images,labels) in tqdm(enumerate(image_loader),desc = 'extracting'):
+        with torch.no_grad():
+            path = image_loader.dataset.samples[i][0]
+            _,_,_,target,label,image_name = path.split('/')
+            
+            feature,_ = net(images)
+            feature = feature.detach().numpy().flatten()
+            features.append(feature)
+            
+            df['labels'].append(label.lower())
+            df['targets'].append(target.lower())
+    df = pd.DataFrame(df)
+    features = np.array(features)
+    return df,features
