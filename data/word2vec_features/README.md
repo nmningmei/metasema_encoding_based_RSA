@@ -1,0 +1,1 @@
+# Code for extracting features from the word2vec models is not shown here. Please refer to: [Decoding and encoding models reveal the role of mental simulation in the brain representation of meaning](https://pubmed.ncbi.nlm.nih.gov/32537202/)
