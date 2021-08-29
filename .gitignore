@@ -136,3 +136,5 @@ results/
 
 # model folder
 models/
+#bash folder
+scripts/RSA_baseline

@@ -30,16 +30,16 @@ if __name__ == "__main__":
     
     image_dir       = '../data/images_for_feature_extraction'
     image_paths     = glob(os.path.join(image_dir,'*','*','*.jpg'))
-    fine_tune_dir   = '../data/101_ObjectCategories_grayscaled'
+    fine_tune_dir   = '../data/101_ObjectCategories'
     fine_tune_size  = 96 if '101' in fine_tune_dir else 2
     figure_dir      = '../figures/cv_features' # save the RDM image
     cv_dir          = '../results/computer_vision_features_no_background_caltech' # save the representations
     
     model_names     = ['vgg19','mobilenet','resnet50']
     image_resize    = 128
-    batch_size      = 32 # a larger batch size than usual
+    batch_size      = 8
     hidden_size     = 300 # to compare with word2vec models
-    learning_rate   = 1e-3 # a faster learning rate than usual
+    learning_rate   = 5e-4 # higher than usual learning rate
     n_epochs        = int(3e3)
     patience        = 5
     noise_level     = None
@@ -53,11 +53,11 @@ if __name__ == "__main__":
             pretrain_model_name     = model_name,
             hidden_units            = hidden_size,
             hidden_activation_name  = 'selu',
-            hidden_dropout          = 0.5,
+            hidden_dropout          = 0.,
             output_units            = fine_tune_size,
             )
         loss_func,optimizer = createLossAndOptimizer(model_to_train,
-                                                                learning_rate = learning_rate)
+                                                     learning_rate = learning_rate)
         model_to_train = train_and_validation(
         model_to_train,
         f_name              = f'../models/{model_name}.pt',
@@ -87,12 +87,13 @@ if __name__ == "__main__":
             noise_level = noise_level,
             do_augmentations = False,
             )
-        features_average,df_average = groupby_average(features, df,groupby=['labels'])
+        features_average,df_average = groupby_average([features], df,groupby=['labels'])
         df_average          = df_average.reset_index(drop = True)
         idx_sort            = list(df_average.sort_values(['targets','labels']).index)
-        features_average    = features_average[idx_sort]
+        features_average    = features_average[0][idx_sort]
         df_average          = df_average.sort_values(['targets','labels']).reset_index(drop = True)
-        df_features         = pd.DataFrame(features_average.T,columns = df_average['labels'])
+        # because the log softmax, we need to negate the values
+        df_features         = pd.DataFrame(-features_average.T,columns = df_average['labels'])
         
         # plot the RDMs
         RDM = distance.squareform(distance.pdist(features_average - features_average.mean(1).reshape(-1,1),

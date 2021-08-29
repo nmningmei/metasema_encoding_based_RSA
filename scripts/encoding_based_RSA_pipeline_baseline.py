@@ -22,7 +22,7 @@ from nilearn.image             import new_img_like
 from nilearn.input_data        import NiftiMasker
 from brainiak.searchlight.searchlight import Searchlight
 from brainiak.searchlight.searchlight import Ball
-
+# addon
 from utils import (groupby_average,
                    feature_normalize,
                    searchlight_function_unit
@@ -57,7 +57,9 @@ if __name__ == "__main__":
     # parameters in the header
     sub                 = '123'
     cv_model_name       = 'vgg19'
-    w2v_model_name      = 'fast text'
+    w2v_model_name      = 'fasttext'
+    condition           = 'read'
+    radius              = 10
     working_dir         = f'../data/Searchlight/{sub}'
     mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
     whole_brain_data    = os.path.join(working_dir,'while_brain_bold_stacked.npy')
@@ -70,6 +72,10 @@ if __name__ == "__main__":
     df_w2v_features     = pd.read_csv(os.path.join('../results/word2vec_features',
                                                    f'{w2v_model_name}.csv')
                                       )
+    output_folder_name  = f'RSA_basedline_average_{radius}mm'
+    output_dir          = f'../results/{output_folder_name}'
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     
     # prepare for loading the data
     masker              = NiftiMasker(whole_brain_mask,).fit()
@@ -77,14 +83,14 @@ if __name__ == "__main__":
     df_events           = pd.read_csv(events)
     df_events['words']  = df_events['words'].apply(lambda x:x.lower())
     unique_words        = np.load('../data/unique_words/words.npy')
-    condition           = 'read'
-    radius              = 10
+    
     
     # select the data based on the condition
     idx_condition   = df_events['context'] == condition
     BOLD_condition  = BOLD_array[idx_condition]
     df_condition    = df_events[idx_condition].reset_index(drop = False)
-    cv_features     = np.array([df_cv_features[word] for word in df_condition['words']])
+    # we need to negate the values is we use log softmax during training
+    cv_features     = np.array([-df_cv_features[word] for word in df_condition['words']])
     w2v_features    = np.array([df_w2v_features[word] for word in df_condition['words']])
     
     # average the data for RSA
@@ -116,12 +122,27 @@ if __name__ == "__main__":
                               )
     gc.collect()
     map_w2v = _searchligh_RSA(BOLD_average,
-                              RDM_cv,
+                              RDM_w2v,
                               whole_brain_mask,
                               sl_rad = radius,
                               )
     gc.collect()
-
+    
+    map_cv  = new_img_like(load_fmri(example_func),np.array(map_cv,  dtype = np.float),)
+    map_w2v = new_img_like(load_fmri(example_func),np.array(map_w2v, dtype = np.float),)
+    
+    # save
+    map_cv.to_filename(os.path.join(output_dir, f'{sub}_{condition}_{cv_model_name}.nii.gz'))
+    map_w2v.to_filename(os.path.join(output_dir,f'{sub}_{condition}_{w2v_model_name}.nii.gz'))
+    
+#    map_cv_positive = masker.transform(map_cv)
+#    map_cv_positive[0 > map_cv_positive] = 0
+#    map_cv_positive = masker.inverse_transform(map_cv_positive)
+#    
+#    map_w2v_positive = masker.transform(map_w2v)
+#    map_w2v_positive[0 > map_w2v_positive] = 0
+#    map_w2v_positive = masker.inverse_transform(map_w2v_positive)
+    
 
 
 

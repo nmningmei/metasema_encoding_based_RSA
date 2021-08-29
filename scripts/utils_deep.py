@@ -247,6 +247,7 @@ def simple_augmentations(image_resize = 128,noise_level = None,do_augmentations 
         if noise_level is not None:
             return transforms.Compose([
         transforms.Resize((image_resize,image_resize)),
+        transforms.Grayscale(num_output_channels = 3),
         transforms.RandomHorizontalFlip(p = 0.5),
         transforms.RandomRotation(45,),
         transforms.RandomVerticalFlip(p = 0.5,),
@@ -257,6 +258,7 @@ def simple_augmentations(image_resize = 128,noise_level = None,do_augmentations 
         else:
             return transforms.Compose([
         transforms.Resize((image_resize,image_resize)),
+        transforms.Grayscale(num_output_channels = 3),
         transforms.RandomHorizontalFlip(p = 0.5),
         transforms.RandomRotation(45,),
         transforms.RandomVerticalFlip(p = 0.5,),
@@ -266,6 +268,7 @@ def simple_augmentations(image_resize = 128,noise_level = None,do_augmentations 
     else:
         return transforms.Compose([
             transforms.Resize((image_resize,image_resize)),
+            transforms.Grayscale(num_output_channels = 3),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
@@ -621,9 +624,9 @@ def extract_cv_features(net,
                         do_augmentations = False,
                         ):
     from tqdm import tqdm
-    augmentations = define_augmentations(image_resize = image_resize,
-                                         noise_level = noise_level,
-                                         do_augmentations = False)
+    augmentations = define_augmentations(image_resize       = image_resize,
+                                         noise_level        = noise_level,
+                                         do_augmentations   = False)
     image_loader = data_loader(
         data_root               = image_dir,
         augmentations           = augmentations['valid'],
