@@ -2,10 +2,7 @@
 
 # Models:
 - VGG19
-<figure>
-  <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/vgg19.jpg" alt="Trulli" style="width:70%">
-  <figcaption>VGG19</figcaption>
-</figure> 
+<img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/vgg19.jpg" width="200" height="200">
 - Mobilenet-v2
 - Resnet50
 - Fast Text
