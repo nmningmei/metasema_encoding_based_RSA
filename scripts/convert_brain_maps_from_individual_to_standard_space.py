@@ -37,12 +37,12 @@ for brain_map_file in working_data:
             output_dir,
             f'{sub}_{condition}_{model_name}_standard.nii.gz')
     res = convert_individual_space_to_standard_space(
-            brain_map_individual_space = brain_map_file,
-            standard_brain = standard_brain,
-            in_transformation_matrix_file = in_transformation_matrix_file,
-            out_transformation_matrix_file = out_transformation_matrix_file,
-            brain_map_standard_space = brain_map_standard_space,
-            run_algorithm = True,
+            brain_map_individual_space      = brain_map_file,
+            standard_brain                  = standard_brain,
+            in_transformation_matrix_file   = in_transformation_matrix_file,
+            out_transformation_matrix_file  = out_transformation_matrix_file,
+            brain_map_standard_space        = brain_map_standard_space,
+            run_algorithm                   = True,
             )
     
 
