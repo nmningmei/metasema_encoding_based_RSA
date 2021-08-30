@@ -57,7 +57,7 @@ if np.sum(temp) == 0:
         f.close()
 
 add_on = """from shutil import copyfile
-copyfile('../utils_deep.py','utils_deep.py')
+copyfile('../utils.py','utils.py')
 """
 collections = []
 for ii,row in df.iterrows():
@@ -82,6 +82,22 @@ for ii,row in df.iterrows():
             old_file.close()
         new_file.close()
     new_batch_script_name = os.path.join(scripts_folder,f'RSA{ii+1}')
+#    content = """#!/bin/bash
+##$ -q long.q
+##$ -N S{row['subject']}_{row['condition']}_{row['cv_model_name'][0]}_{row['w2v_model_name'][0]}
+##$ -o output/out_sub{row['subject']}_{row['condition']}_{row['cv_model_name'][0]}_{row['w2v_model_name'][0]}.txt
+##$ -e output/err_sub{row['subject']}_{row['condition']}_{row['cv_model_name'][0]}_{row['w2v_model_name'][0]}.txt
+##$ -cwd
+##$ -m be
+##$ -M nmei@bcbl.eu
+##$ -S /bin/bash
+#
+#pwd
+#echo "{row['subject']}_{row['condition']}_{row['cv_model_name']}_{row['w2v_model_name']}"
+#module load python/python3.6
+#
+#python "{created_file_name}"
+#"""
     content = f"""#!/bin/bash
 #PBS -q bcbl
 #PBS -l nodes={node}:ppn={core}
@@ -110,5 +126,5 @@ with open(f'{scripts_folder}/qsub_jobs.py','a') as f:
         if ii == 0:
             f.write(f'\nos.system("{line}")\n')
         else:
-            f.write(f'time.sleep(0.1)\nos.system("{line}")\n')
+            f.write(f'time.sleep(3)\nos.system("{line}")\n')
     f.close()
