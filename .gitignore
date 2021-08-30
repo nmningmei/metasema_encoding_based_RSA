@@ -138,3 +138,5 @@ results/
 models/
 #bash folder
 scripts/RSA_baseline
+# temporal folder
+scripts/temp

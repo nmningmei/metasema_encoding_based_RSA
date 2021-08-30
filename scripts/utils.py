@@ -13,6 +13,7 @@ import pandas as pd
 from scipy.spatial import distance
 from scipy.stats   import spearmanr
 
+from nipype.interfaces import fsl
 def groupby_average(list_of_arrays,df,groupby = ['trials'],axis = 0):
     """
     To compute the average groupby the dataframe
@@ -72,7 +73,7 @@ def convert_individual_space_to_standard_space(brain_map_individual_space,
         output file path
     run_algorithm: bool, default = False
     """
-    from nipype.interfaces import fsl
+    
     
     flt = fsl.FLIRT()
     flt.inputs.in_file          = os.path.abspath(brain_map_individual_space)
@@ -83,7 +84,62 @@ def convert_individual_space_to_standard_space(brain_map_individual_space,
     flt.inputs.output_type      = 'NIFTI_GZ'
     flt.inputs.apply_xfm        = True
     if run_algorithm:
-        res = flt.run()
+        flt.run()
     else:
-        res = flt.cmdline
-    return res
+        print(flt.cmdline)
+    return flt
+
+def nipype_fsl_randomise(input_file,
+                         mask_file,
+                         base_name,
+                         tfce                   = True,
+                         var_smooth             = 6,
+                         demean                 = False,
+                         one_sample_group_mean  = True,
+                         n_permutation          = int(1e4),
+                         quiet                  = False,
+                         run_algorithm          = False,
+                         ):
+    """
+    Run FSL-randomise for a one-tailed one-sample t test, correct
+        by TFCE
+    
+    input_file: string or os.path.abspath
+        4DNifti1Image
+    mask_file: string or os.path.abspath
+        3DNifti1Image
+    base_name: string or os.path.abspath
+        base name
+    tfce: bool, default = True
+        to correct the p values with TFCE
+    var_smooth: int, default = 6
+        size for variance smoothing, unit = mm
+    demean: bool, default = False
+        temporally remove the mean before computation
+    one_sample_group_mean: bool, default = True
+        one-sample t test
+    n_permutation: int, default = 10000
+        number of permutations, set to 0 for exhausive
+    quiet: bool, default = False
+        set to True to surpress the outputs
+    run_algorithm: bool, default = False
+        run the algorithm or print the command line code
+    """
+    rand                        = fsl.Randomise()
+    if quiet:
+        rand.inputs.args        = '--quiet'
+    rand.inputs.in_file         = os.path.abspath(input_file)
+    rand.inputs.mask            = os.path.abspath(mask_file)
+    rand.inputs.tfce            = tfce
+    rand.inputs.var_smooth      = var_smooth
+    rand.inputs.base_name       = os.path.abspath(base_name)
+    rand.inputs.demean          = demean
+    rand.inputs.one_sample_group_mean = one_sample_group_mean
+    rand.inputs.num_perm        = n_permutation
+    rand.inputs.seed            = 12345
+    
+    if run_algorithm:
+        rand.run()
+    else:
+        print(rand.cmdline)
+    return rand
