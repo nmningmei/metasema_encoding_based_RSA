@@ -4,7 +4,7 @@
 
 | VGG19 | Mobilenet-v2 | Resnet50 |
 | :---: | :---: | :---: |
-| <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/vgg19.jpg" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/mobilenet.jpg.jpg" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/resnet50.jpg.jpg" width="200" height="200"> |
+| <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/vgg19.jpg" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/mobilenet.jpg" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/cv_features/resnet50.jpg" width="200" height="200"> |
 
 | Fast Text | GloVe | Word2vec-2012 |
 | :---: | :---: | :---: |
