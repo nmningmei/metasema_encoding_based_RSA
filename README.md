@@ -12,5 +12,5 @@
 
 # Results
 ---
-## Group-level average
+## Group-level average - 10mm RSA
  ![baseline-rsa](https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/RSA_basedline_average_10mm_standard_group_average/group%20average.jpg)
