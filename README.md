@@ -8,7 +8,7 @@
 
 | Fast Text | GloVe | Word2vec-2012 |
 | :---: | :---: | :---: |
-| <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/word2vec_features/metasema%20word2vec%20RDM%20(fast%20text%2Clight).png" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/word2vec_features/metasema%20word2vec%20RDM%20(glove%2Clight).png" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/word2vec_features/metasema%20word2vec%20RDM%20(word2vec%2Clight).png" width="200" height="200"> |
+| <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/word2vec_features/fasttext(light).jpg" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/word2vec_features/glove(light).jpg" width="200" height="200"> | <img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/word2vec_features/word2vec(light).jpg" width="200" height="200"> |
 
 # Results
 ---
