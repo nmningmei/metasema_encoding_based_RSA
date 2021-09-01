@@ -57,9 +57,9 @@ if __name__ == "__main__":
     # parameters in the header
     for sub                 in os.listdir('../data/Searchlight'):
         for condition           in ['read','reenact']:
-            cv_model_name       = 'resnet50' # change here
-            w2v_model_name      = 'word2vec' # chenge here
-            radius              = 10 # define your RSA radius
+            cv_model_name       = 'mobilenet' # change here
+            w2v_model_name      = 'glove' # chenge here
+            radius              = 6 # define your RSA radius
             working_dir         = f'../data/Searchlight/{sub}'
             mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
             whole_brain_data    = os.path.join(working_dir,'while_brain_bold_stacked.npy')

@@ -140,3 +140,5 @@ models/
 scripts/RSA_baseline
 # temporal folder
 scripts/temp
+#bash folder
+scripts/randomise

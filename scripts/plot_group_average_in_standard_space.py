@@ -26,14 +26,11 @@ from nilearn.datasets import fetch_surf_fsaverage
 from nilearn.plotting import plot_surf_stat_map
 from nilearn.input_data import NiftiMasker
 
-from utils import nipype_fsl_randomise
-
 from matplotlib import pyplot as plt
 
 sns.set_context('paper')
 
 radius              = 10
-rerun_randomise     = False
 folder_name         = f'RSA_basedline_average_{radius}mm_standard'
 working_dir         = f'../results/{folder_name}'
 standard_brain_mask = '../data/standard_brain/MNI152_T1_2mm_brain_mask_dil.nii.gz'
@@ -100,31 +97,20 @@ for (model_name,condition) in iterator:
 df = pd.DataFrame(df)
 
 # randomise
-if rerun_randomise:
-    temp_dir = 'temp'
-    if not os.path.exists(temp_dir):
-        os.mkdir(temp_dir) 
-    for ii,row in list(df.iterrows())[::2]:
-        row
-        maps_for_randomise = row['randomise_brain_map']
-        condition,model_name = row['title'].split(', ')
-        maps_for_randomise.to_filename(os.path.join(temp_dir,
-                  f'{condition.replace(" ","_")}_{model_name.replace(" ","_")}.nii.gz'))
-        input_file = os.path.join(temp_dir,
-                  f'{condition.replace(" ","_")}_{model_name.replace(" ","_")}.nii.gz')
-        mask_file = standard_brain_mask
-        base_name = os.path.join(randomise_dir,
-                  f'{condition.replace(" ","_")}_{model_name.replace(" ","_")}')
-        nipype_fsl_randomise(input_file,
-                             mask_file,
-                             base_name,
-                             tfce                   = True,
-                             var_smooth             = 6,
-                             demean                 = False,
-                             one_sample_group_mean  = True,
-                             n_permutation          = int(1e4),
-                             quiet                  = True,
-                             run_algorithm          = True,)
+maps_randomise = glob(os.path.join(randomise_dir,f'*tfce_corrp_tstat1.nii.gz'))
+temp = []
+for ii,row in list(df.iterrows())[::2]:
+    condition,model_name = row['title'].split(', ')
+    map_randomise = [item for item in maps_randomise if\
+                     (condition.replace(" ","_") in item)\
+                     and (model_name.replace(" ","_") in item)][0]
+    pvalue      = masker.fit_transform(map_randomise)[0]
+    # in randomise, p values are saved as 1 - P
+#    pvalue_     = -np.log(pvalue)
+#    pvalue_[pvalue_ == np.inf] = 0
+    p_to_plot   = masker.inverse_transform(pvalue)
+    temp.append(p_to_plot)
+df['randomise_maps'] = np.repeat(temp,2)
 
 vmax        = .1
 bottom,top  = 0.1,0.9
@@ -157,18 +143,52 @@ for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
                        figure           = fig,
                        title            = title,
                        cmap             = plt.cm.bwr,
-                       colorbar         = False,
+                       colorbar         = True,
                        vmax             = vmax,
                        symmetric_cbar   = 'auto',)
-cbar_ax = fig.add_axes([0.92,bottom,0.01,top - bottom])
-cbar    = fig.colorbar(im,cax = cbar_ax)
-cbar.set_ticks(np.array([0,vmax]))
-cbar.set_ticklabels(np.array([0,vmax],dtype = str))
+#cbar_ax = fig.add_axes([0.92,bottom,0.01,top - bottom])
+#cbar    = fig.colorbar(im,cax = cbar_ax)
+#cbar.set_ticks(np.array([0,vmax]))
+#cbar.set_ticklabels(np.array([0,vmax],dtype = str))
 fig.savefig(os.path.join(figure_group_average_dir,'group average.jpg'),
             bbox_inches = 'tight')
 plt.close('all')
 
-
+vmax = 1
+plt.close('all')
+print('plotting in standard space')
+fig,axes = plt.subplots(figsize     = (4 * 4,6 * 3),
+                        nrows       = 6, # determined by models tested
+                        ncols       = 4, # because I want to plot both left and right brain
+                        subplot_kw  = {'projection':'3d'},
+                        )
+for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
+    image_for_plot  = row['randomise_maps']
+    surf_mesh       = row['surf_mesh']
+    bg_map          = row['bg_map']
+    hemi            = row['hemisphere']
+    title           = row['title']
+    
+    brain_map_in_surf = vol_to_surf(image_for_plot,surf_mesh,radius = radius,)
+    plot_surf_stat_map(surf_mesh,
+                       brain_map_in_surf,
+                       bg_map           = bg_map,
+                       threshold        = 1 - 0.05,
+                       hemi             = hemi,
+                       axes             = ax,
+                       figure           = fig,
+                       title            = title,
+                       cmap             = plt.cm.bwr,
+                       colorbar         = True,
+                       vmax             = vmax,
+                       symmetric_cbar   = 'auto',)
+#cbar_ax = fig.add_axes([0.92,bottom,0.01,top - bottom])
+#cbar    = fig.colorbar(im,cax = cbar_ax)
+#cbar.set_ticks(np.array([0,vmax]))
+#cbar.set_ticklabels(np.array([0,vmax],dtype = str))
+fig.savefig(os.path.join(figure_stat_dir,'group average p values.jpg'),
+            bbox_inches = 'tight')
+plt.close('all')
 
 
 

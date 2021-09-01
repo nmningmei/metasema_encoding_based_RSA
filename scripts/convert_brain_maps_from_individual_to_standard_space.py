@@ -10,8 +10,9 @@ import os
 
 from glob import glob
 from utils import convert_individual_space_to_standard_space
+from joblib import Parallel,delayed
 
-radius                  = 10
+radius                  = 6
 folder_name             = f'RSA_basedline_average_{radius}mm'
 working_dir             = f'../results/{folder_name}'
 working_data            = glob(os.path.join(working_dir,'*.nii.gz'))
@@ -23,7 +24,7 @@ for f in [out_transformation_dir,output_dir]:
     if not os.path.exists(f):
         os.mkdir(f)
 
-for brain_map_file in working_data:
+def _proc(brain_map_file):
     sub,condition,model_name = brain_map_file.split('/')[-1].split('.')[0].split('_')
     in_transformation_matrix_file = os.path.join(
             transformation_dir,
@@ -44,7 +45,10 @@ for brain_map_file in working_data:
             brain_map_standard_space        = brain_map_standard_space,
             run_algorithm                   = True,
             )
-    
+    return res
+
+res = Parallel(n_jobs = -1,verbose = 1)(delayed(_proc)(**{
+        'brain_map_file':brain_map_file}) for brain_map_file in working_data)
 
 
 
