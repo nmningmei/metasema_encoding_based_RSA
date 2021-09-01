@@ -58,37 +58,37 @@ for ii in range(12):
             old_file.close()
         new_file.close()
     new_batch_script_name = os.path.join(scripts_folder,f'RSA{ii+1}')
-    content = f"""#!/bin/bash
-#$ -q long.q
-#$ -N Ran{ii}
-#$ -o output/out_{ii}.txt
-#$ -e output/err_{ii}.txt
-#$ -cwd
-#$ -m be
-#$ -M nmei@bcbl.eu
-#$ -S /bin/bash
-
-pwd
-echo "randomise map {ii}"
-module load python/python3.6
-
-python "{new_scripts_name.split('/')[-1]}"
-"""
 #    content = f"""#!/bin/bash
-##PBS -q bcbl
-##PBS -l nodes={node}:ppn={core}
-##PBS -l mem={mem}gb
-##PBS -l cput={cput}:00:00
-##PBS -N RSA{ii+1}
-##PBS -o outputs/out_{ii+1}.txt
-##PBS -e outputs/err_{ii+1}.txt
-#cd $PBS_O_WORKDIR
-#export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
-#source activate keras-2.1.6_tensorflow-2.0.0
+##$ -q long.q
+##$ -N Ran{ii}
+##$ -o output/out_{ii}.txt
+##$ -e output/err_{ii}.txt
+##$ -cwd
+##$ -m be
+##$ -M nmei@bcbl.eu
+##$ -S /bin/bash
+#
 #pwd
-#echo {new_scripts_name.split('/')[-1]}
+#echo "randomise map {ii}"
+#module load python/python3.6
+#
 #python "{new_scripts_name.split('/')[-1]}"
-#    """
+#"""
+    content = f"""#!/bin/bash
+#PBS -q bcbl
+#PBS -l nodes={node}:ppn={core}
+#PBS -l mem={mem}gb
+#PBS -l cput={cput}:00:00
+#PBS -N RSA{ii+1}
+#PBS -o outputs/out_{ii+1}.txt
+#PBS -e outputs/err_{ii+1}.txt
+cd $PBS_O_WORKDIR
+export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
+source activate keras-2.1.6_tensorflow-2.0.0
+pwd
+echo {new_scripts_name.split('/')[-1]}
+python "{new_scripts_name.split('/')[-1]}"
+    """
     with open(new_batch_script_name,'w') as f:
         f.write(content)
         f.close()
