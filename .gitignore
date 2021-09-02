@@ -142,3 +142,5 @@ scripts/RSA_baseline
 scripts/temp
 #bash folder
 scripts/randomise
+# dump files
+scripts/core.*

@@ -30,7 +30,7 @@ from matplotlib import pyplot as plt
 
 sns.set_context('paper')
 
-radius              = 10
+radius              = 6
 folder_name         = f'RSA_basedline_average_{radius}mm_standard'
 working_dir         = f'../results/{folder_name}'
 standard_brain_mask = '../data/standard_brain/MNI152_T1_2mm_brain_mask_dil.nii.gz'

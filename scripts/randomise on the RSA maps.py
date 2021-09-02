@@ -84,7 +84,7 @@ temp_dir = 'temp'
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
 
-idx = 0
+idx = 9
 row = df.iloc[idx,:]
 maps_for_randomise = row['randomise_brain_map']
 condition,model_name = row['title'].split(', ')
