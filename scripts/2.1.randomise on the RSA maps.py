@@ -64,6 +64,8 @@ for (model_name,condition) in iterator:
     image_for_randomise = masker.inverse_transform(data)
     image_for_plot      = mean_img(image_for_randomise)
     data                = masker.transform(image_for_plot)
+    # convert data to z scores
+    data                = np.arctanh(data)
     # exclude negative correlation coefficients
     data[0 > data]      = 0
     image_for_plot      = masker.inverse_transform(data)

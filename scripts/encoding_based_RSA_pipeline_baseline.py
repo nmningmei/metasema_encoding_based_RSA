@@ -58,8 +58,8 @@ if __name__ == "__main__":
     for sub                 in os.listdir('../data/Searchlight'):
         for condition           in ['read','reenact']:
             cv_model_name       = 'mobilenet' # change here
-            w2v_model_name      = 'glove' # chenge here
-            radius              = 6 # define your RSA radius
+            w2v_model_name      = 'fasttext' # chenge here
+            radius              = 10 # define your RSA radius
             working_dir         = f'../data/Searchlight/{sub}'
             mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
             whole_brain_data    = os.path.join(working_dir,'while_brain_bold_stacked.npy')
@@ -89,8 +89,7 @@ if __name__ == "__main__":
             idx_condition   = df_events['context'] == condition
             BOLD_condition  = BOLD_array[idx_condition]
             df_condition    = df_events[idx_condition].reset_index(drop = False)
-            # we need to negate the values is we use log softmax during training
-            cv_features     = np.array([-df_cv_features[word] for word in df_condition['words']])
+            cv_features     = np.array([df_cv_features[word] for word in df_condition['words']])
             w2v_features    = np.array([df_w2v_features[word] for word in df_condition['words']])
             
             # average the data for RSA

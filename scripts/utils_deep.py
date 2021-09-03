@@ -643,7 +643,7 @@ def extract_cv_features(net,
             path = image_loader.dataset.samples[i][0]
             _,_,_,target,label,image_name = path.split('/')
             
-            feature,_ = net(images)
+            preds,feature = net(images)
             feature = feature.detach().numpy().flatten()
             features.append(feature)
             

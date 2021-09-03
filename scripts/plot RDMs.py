@@ -44,8 +44,6 @@ if __name__ == "__main__":
         model_name = filename.split('/')[-1].split('.')[0]
         df_features = pd.read_csv(filename)
         features = np.array([df_features[word] for word in words])
-        if model_type_map[model_name] == 'cv':
-            features = -features
         RDM = distance.squareform(distance.pdist(features - features.mean(1).reshape(-1,1),'cosine'))
         
         np.fill_diagonal(RDM, np.nan)

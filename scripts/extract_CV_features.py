@@ -83,17 +83,15 @@ if __name__ == "__main__":
         df,features = extract_cv_features(
             model_to_train,
             image_dir,
-            image_resize = image_resize,
-            noise_level = noise_level,
-            do_augmentations = False,
+            image_resize        = image_resize,
+            noise_level         = noise_level,
+            do_augmentations    = False,
             )
         features_average,df_average = groupby_average([features], df,groupby=['labels'])
         df_average          = df_average.reset_index(drop = True)
         idx_sort            = list(df_average.sort_values(['targets','labels']).index)
         features_average    = features_average[0][idx_sort]
         df_average          = df_average.sort_values(['targets','labels']).reset_index(drop = True)
-        # because the log softmax, we need to negate the values
-        df_features         = pd.DataFrame(-features_average.T,columns = df_average['labels'])
         
         # plot the RDMs
         RDM = distance.squareform(distance.pdist(features_average - features_average.mean(1).reshape(-1,1),

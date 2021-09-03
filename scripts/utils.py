@@ -12,8 +12,11 @@ import pandas as pd
 
 from scipy.spatial import distance
 from scipy.stats   import spearmanr
+try:
+    from nipype.interfaces import fsl
+except Exception as e:
+    print(str(e))
 
-from nipype.interfaces import fsl
 def groupby_average(list_of_arrays,df,groupby = ['trials'],axis = 0):
     """
     To compute the average groupby the dataframe
@@ -143,3 +146,24 @@ def nipype_fsl_randomise(input_file,
     else:
         print(rand.cmdline)
     return rand
+
+def load_event_files(f,idx = 3):
+    """
+    f: string or os.path
+    idx: int, default = 3
+    """
+    temp = f.split('/')
+    df          = pd.read_csv(f)
+    df['sub']   = temp[idx]
+    return df
+
+def load_computational_features(model_name):
+    directories = {'vgg19':     '../results/computer_vision_features_no_background_caltech',
+                   'mobilenet': '../results/computer_vision_features_no_background_caltech',
+                   'resnet50':  '../results/computer_vision_features_no_background_caltech',
+                   'fasttext':  '../results/word2vec_features',
+                   'glove':     '../results/word2vec_features',
+                   'word2vec':  '../results/word2vec_features',}
+    filename = os.path.join(directories[model_name],f'{model_name}.csv')
+    df = pd.read_csv(filename)
+    return df

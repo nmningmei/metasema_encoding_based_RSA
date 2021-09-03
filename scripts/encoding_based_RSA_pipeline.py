@@ -16,37 +16,44 @@ import os
 import numpy  as np
 import pandas as pd
 
+from glob import glob
+
 from nilearn.input_data import NiftiMasker
+from nilearn.datasets import load_mni152_template,load_mni152_brain_mask
+from nilearn.image import concat_imgs
 
 from sklearn import linear_model,preprocessing,metrics,model_selection as skms
 from sklearn.pipeline import make_pipeline
 
+from utils import load_event_files,load_computational_features
+
+for item in glob('core.*'):
+    os.system(f'rm {item}')
 # parameters in the header
-sub                 = '123'
-working_dir         = f'../data/Searchlight/{sub}'
+sub                 = '*'
+model_name          = 'mobilenet'
+working_dir         = f'../results/Searchlight_standard/{sub}'
+event_dir           = f'../data/Searchlight/{sub}'
 mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
-whole_brain_data    = os.path.join(working_dir,'while_brain_bold_stacked.npy')
-events              = os.path.join(working_dir,'while_brain_bold_stacked.csv')
-combined_mask       = os.path.join(mask_dir,'mask.nii.gz')
-example_func        = os.path.join(mask_dir,'example_func.nii.gz')
+whole_brain_data    = np.sort(glob(os.path.join(working_dir,'*.nii.gz')))
+events              = np.sort(glob(os.path.join(event_dir,'while_brain_bold_stacked.csv')))
+whole_brain_mask    = load_mni152_brain_mask()
+example_func        = load_mni152_template()
 
 # prepare for loading the data
-masker              = NiftiMasker(combined_mask,).fit()
-BOLD_array          = np.load(whole_brain_data)
-df_events           = pd.read_csv(events)
+masker              = NiftiMasker(whole_brain_mask,).fit()
+concat_BOLD         = concat_imgs(whole_brain_data) # for RSA
+df_events           = pd.concat([load_event_files(f) for f in events])
+BOLD_array          = masker.transform(concat_BOLD) # for encoding
 df_events['words']  = df_events['words'].apply(lambda x:x.lower())
-unique_words        = np.load('../data/unique_words/words.npy')
+unique_words        = np.load('../data/unique_words/words.npy').astype(str)
+df_features         = load_computational_features(model_name)
 condition           = 'read'
 
-# select the data based on the condition
-idx_condition   = df_events['context'] == condition
-BOLD_condition  = BOLD_array[idx_condition]
-df_condition    = df_events[idx_condition]
-
-for word in unique_words:
-    word = str(word,'UTF-8')
-    idx_train = df_condition['words'] != word
-    idx_test = df_condition['words'] == word
+# leave one subject out cross validation
+idx_sub             = '123' # change here
+idx_test            = df_events['sub'] == idx_sub
+idx_train           = df_events['sub'] != idx_sub
 
 
 
