@@ -9,9 +9,9 @@ Created on Sun Aug 29 02:44:20 2021
 import os
 import numpy as np
 import pandas as pd
-from shutil import rmtree
+from shutil import rmtree,copyfile
 
-template = 'randomise on the RSA maps.py'
+template = '2.1.randomise on the RSA maps.py'
 working_dir = '../data/Searchlight'
 subjects = os.listdir(working_dir)
 cv_model_names = ['vgg19','mobilenet','resnet50']
@@ -31,6 +31,7 @@ else:
     rmtree(scripts_folder)
     os.mkdir(scripts_folder)
 os.mkdir(f'{scripts_folder}/outputs')
+copyfile('utils.py',f'{scripts_folder}/utils.py')
 # add to gitignore
 with open ('../.gitignore','r') as f:
     temp = [f'scripts/{scripts_folder}' in line for line in f]

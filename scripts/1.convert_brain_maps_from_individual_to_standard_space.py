@@ -12,7 +12,7 @@ from glob import glob
 from utils import convert_individual_space_to_standard_space
 from joblib import Parallel,delayed
 
-radius                  = 6
+radius                  = 10
 folder_name             = f'RSA_basedline_average_{radius}mm'
 working_dir             = f'../results/{folder_name}'
 working_data            = glob(os.path.join(working_dir,'*.nii.gz'))

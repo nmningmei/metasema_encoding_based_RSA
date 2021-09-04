@@ -21,7 +21,7 @@ from nilearn.input_data import NiftiMasker
 from utils import nipype_fsl_randomise
 
 
-radius              = 6
+radius              = 10
 rerun_randomise     = False
 folder_name         = f'RSA_basedline_average_{radius}mm_standard'
 working_dir         = f'../results/{folder_name}'

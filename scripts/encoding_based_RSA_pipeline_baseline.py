@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # parameters in the header
     for sub                 in os.listdir('../data/Searchlight'):
         for condition           in ['read','reenact']:
-            model_name          = 'mobilenet' # change here
+            model_name          = 'word2vec' # change here
             radius              = 10 # define your RSA radius
             working_dir         = f'../data/Searchlight/{sub}'
             mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
