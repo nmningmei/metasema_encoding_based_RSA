@@ -86,7 +86,7 @@ temp_dir = 'temp'
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
 
-idx = 0
+idx = 0 # change idx
 row = df.iloc[idx,:]
 maps_for_randomise = row['randomise_brain_map']
 condition,model_name = row['title'].split(', ')
@@ -97,13 +97,14 @@ input_file = os.path.join(temp_dir,
 mask_file = standard_brain_mask
 base_name = os.path.join(randomise_dir,
           f'{condition.replace(" ","_")}_{model_name.replace(" ","_")}')
-nipype_fsl_randomise(input_file,
-                     mask_file,
-                     base_name,
-                     tfce                   = True,
-                     var_smooth             = 6,
-                     demean                 = False,
-                     one_sample_group_mean  = True,
-                     n_permutation          = int(1e4),
-                     quiet                  = True,
-                     run_algorithm          = True,)
+if not os.path.exists(base_name + '_tfce_corrp_tstat1.nii.gz'):
+    nipype_fsl_randomise(input_file,
+                         mask_file,
+                         base_name,
+                         tfce                   = True,
+                         var_smooth             = 6,
+                         demean                 = False,
+                         one_sample_group_mean  = True,
+                         n_permutation          = int(1e4),
+                         quiet                  = True,
+                         run_algorithm          = True,)
