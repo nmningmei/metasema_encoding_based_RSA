@@ -128,19 +128,16 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# numpy arrays
-*.npy
-
 # results folder
 results/
 
 # model folder
 models/
-#bash folder
+# bash folder
 scripts/RSA_baseline
 # temporal folder
 scripts/temp
-#bash folder
+# bash folder
 scripts/randomise
 # dump files
 scripts/core.*
