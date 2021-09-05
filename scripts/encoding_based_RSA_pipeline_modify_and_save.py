@@ -63,8 +63,10 @@ for ii,row in df_iteration.iterrows():
                     line = f'    model_name          = "{model_name}"\n'
                 elif "change n_jobs" in line:
                     line = '    n_jobs              = -1\n'
-                elif "change alpha_max" in line:
+                elif "change alpha" in line:
                     line = '    alpha_max           = 20\n'
+                elif "change dir idx" in line:
+                    line = line.replace('idx = 3','idx = 4')
                 new_file.write(line)
             old_file.close()
         new_file.close()

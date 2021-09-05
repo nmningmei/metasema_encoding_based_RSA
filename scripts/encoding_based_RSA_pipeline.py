@@ -105,14 +105,14 @@ if __name__ == "__main__":
     
     # prepare for loading the data
     masker              = NiftiMasker(whole_brain_mask,).fit()
-    df_events           = pd.concat([load_event_files(f) for f in events])
+    df_events           = pd.concat([load_event_files(f,idx = 3) for f in events]) # change dir idx
     res = Parallel(n_jobs = -1,verbose = 1,)(delayed(masker.transform)(**{
             'imgs':item}) for item in whole_brain_data)
     BOLD_array          = np.concatenate(res) # for encoding
     del res
     df_events['words']  = df_events['words'].apply(lambda x:x.lower())
     unique_words        = np.load('../data/unique_words/words.npy').astype(str)
-    df_features         = load_computational_features(model_name)
+    df_features         = load_computational_features('../results',model_name)
     
     # pick condition
     idx_condition       = df_events['context'] == condition

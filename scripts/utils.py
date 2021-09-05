@@ -157,13 +157,13 @@ def load_event_files(f,idx = 3):
     df['sub']   = temp[idx]
     return df
 
-def load_computational_features(model_name):
-    directories = {'vgg19':     '../results/computer_vision_features_no_background_caltech',
-                   'mobilenet': '../results/computer_vision_features_no_background_caltech',
-                   'resnet50':  '../results/computer_vision_features_no_background_caltech',
-                   'fasttext':  '../results/word2vec_features',
-                   'glove':     '../results/word2vec_features',
-                   'word2vec':  '../results/word2vec_features',}
+def load_computational_features(results_dir,model_name):
+    directories = {'vgg19':     f'{results_dir}/computer_vision_features_no_background_caltech',
+                   'mobilenet': f'{results_dir}/computer_vision_features_no_background_caltech',
+                   'resnet50':  f'{results_dir}/computer_vision_features_no_background_caltech',
+                   'fasttext':  f'{results_dir}/word2vec_features',
+                   'glove':     f'{results_dir}/word2vec_features',
+                   'word2vec':  f'{results_dir}/word2vec_features',}
     filename = os.path.join(directories[model_name],f'{model_name}.csv')
     df = pd.read_csv(filename)
     return df
