@@ -143,3 +143,6 @@ scripts/randomise
 scripts/core.*
 # bash folder
 scripts/ENRSA
+
+# data folder - too big
+data/Searchlight
