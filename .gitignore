@@ -144,3 +144,5 @@ scripts/temp
 scripts/randomise
 # dump files
 scripts/core.*
+# bash folder
+scripts/ENRSA
