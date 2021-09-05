@@ -158,6 +158,12 @@ def load_event_files(f,idx = 3):
     return df
 
 def load_computational_features(results_dir,model_name):
+    """
+    results_dir: string or os.path
+        It is for bash script generating
+    model_name: string
+        It is for the dictionary defined below
+    """
     directories = {'vgg19':     f'{results_dir}/computer_vision_features_no_background_caltech',
                    'mobilenet': f'{results_dir}/computer_vision_features_no_background_caltech',
                    'resnet50':  f'{results_dir}/computer_vision_features_no_background_caltech',

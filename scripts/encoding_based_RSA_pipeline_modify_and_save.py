@@ -21,8 +21,8 @@ df_iteration = pd.DataFrame(list(product(subjects,model_names,conditions)),
                             columns = ['sub','model_name','condition'])
 
 node = 1
-core = 16
-mem = 6 * node * core
+core = 8
+mem = 16 * node * core
 cput = 24 * node * core
 
 #############
