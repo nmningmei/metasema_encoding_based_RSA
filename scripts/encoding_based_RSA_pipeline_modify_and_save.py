@@ -12,7 +12,7 @@ import pandas as pd
 from shutil import rmtree,copyfile
 from itertools import product
 
-template = 'encoding_based_RSA_pipeline.py'
+template = 'encoding_based_pytorch_RSA_pipeline.py'
 working_dir = '../data/Searchlight'
 subjects = os.listdir(working_dir)
 model_names = ['vgg19','mobilenet','resnet50','fasttext','glove','word2vec']
@@ -21,8 +21,8 @@ df_iteration = pd.DataFrame(list(product(subjects,model_names,conditions)),
                             columns = ['sub','model_name','condition'])
 
 node = 1
-core = 8
-mem = 16 * node * core
+core = 16
+mem = 6 * node * core
 cput = 24 * node * core
 
 #############
@@ -34,6 +34,7 @@ else:
     os.mkdir(scripts_folder)
 os.mkdir(f'{scripts_folder}/outputs')
 copyfile('utils.py',f'{scripts_folder}/utils.py')
+copyfile('utils_deep.py',f'{scripts_folder}/utils_deep.py')
 # add to gitignore
 with open ('../.gitignore','r') as f:
     temp = [f'scripts/{scripts_folder}' in line for line in f]
@@ -61,8 +62,8 @@ for ii,row in df_iteration.iterrows():
                     line = f'    condition           = "{condition}"\n'
                 elif 'change model_name' in line:
                     line = f'    model_name          = "{model_name}"\n'
-                elif "change n_jobs" in line:
-                    line = '    n_jobs              = -1\n'
+#                elif "change n_jobs" in line:
+#                    line = '    n_jobs              = -1\n'
                 elif "change alpha" in line:
                     line = '    alpha_max           = 20\n'
                 elif "change dir idx" in line:

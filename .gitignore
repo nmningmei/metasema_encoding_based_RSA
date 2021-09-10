@@ -146,3 +146,5 @@ scripts/ENRSA
 
 # data folder - too big
 data/Searchlight
+#bash folder
+scripts/Erandomise

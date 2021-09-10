@@ -20,18 +20,23 @@ import seaborn as sns
 from glob import glob
 from tqdm import tqdm
 from itertools import product
-from nilearn.image import concat_imgs,mean_img
 from nilearn.surface import vol_to_surf
 from nilearn.datasets import fetch_surf_fsaverage
 from nilearn.plotting import plot_surf_stat_map
 from nilearn.input_data import NiftiMasker
 
 from matplotlib import pyplot as plt
+from utils import load_data_for_randomise
 
 sns.set_context('paper')
+for item in glob('core.*'):
+    os.system(f'rm {item}')
 
 radius              = 10
-folder_name         = f'RSA_basedline_average_{radius}mm_standard'
+folder_name         = f'encoding_based_RSA_{radius}mm' # we change this accordingly
+# RSA_basedline_average_{radius}mm_standard
+# encoding_based_RSA_{radius}mm
+# encoding
 working_dir         = f'../results/{folder_name}'
 standard_brain_mask = '../data/standard_brain/MNI152_T1_2mm_brain_mask_dil.nii.gz'
 conditions          = ['read','reenact']
@@ -68,15 +73,15 @@ for (model_name,condition) in iterator:
                                                 f'*{condition}*{model_name}*nii.gz')
                                     )
                                 )
-    concat_images   = concat_imgs(working_data)
-    # mask the output before we conduct statistical inference
-    data                = masker.transform(concat_images)
+    data = load_data_for_randomise(working_data,
+                                   folder_name,
+                                   masker,
+                                   return_tanh = False,)
+    data = np.squeeze(data)
     image_for_randomise = masker.inverse_transform(data)
-    image_for_plot      = mean_img(image_for_randomise)
-    data                = masker.transform(image_for_plot)
-    # exclude negative correlation coefficients
-    data[0 > data]      = 0
-    image_for_plot      = masker.inverse_transform(data)
+#    data_average = np.mean(data, 0)
+#    data_average[0 > data_average] = 0
+    image_for_plot      = masker.inverse_transform(np.mean(data,axis = 0))
     
     # left
     df['surf_mesh'              ].append(fsaverage.infl_left)
@@ -97,7 +102,7 @@ for (model_name,condition) in iterator:
 df = pd.DataFrame(df)
 
 # randomise
-maps_randomise = glob(os.path.join(randomise_dir,f'*tfce_corrp_tstat1.nii.gz'))
+maps_randomise = glob(os.path.join(randomise_dir,'*tfce_corrp_tstat1.nii.gz'))
 temp = []
 for ii,row in list(df.iterrows())[::2]:
     condition,model_name = row['title'].split(', ')
@@ -112,12 +117,9 @@ for ii,row in list(df.iterrows())[::2]:
     temp.append(p_to_plot)
 df['randomise_maps'] = np.repeat(temp,2)
 
-vmax        = .1
+vmax        = None
 bottom,top  = 0.1,0.9
 left,right  = 0.1,0.8
-data        = np.random.uniform(0,vmax,size = (50,50))
-# for making the colorbar
-im          = plt.imshow(data,cmap = plt.cm.Reds,vmin = 0,vmax = vmax)
 
 plt.close('all')
 print('plotting in standard space')
@@ -133,11 +135,11 @@ for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
     hemi            = row['hemisphere']
     title           = row['title']
     
-    brain_map_in_surf = vol_to_surf(image_for_plot,surf_mesh,radius = radius,)
+    brain_map_in_surf = vol_to_surf(image_for_plot,surf_mesh,radius = 2,)
     plot_surf_stat_map(surf_mesh,
                        brain_map_in_surf,
                        bg_map           = bg_map,
-                       threshold        = 0.005,
+                       threshold        = 1e-4,
                        hemi             = hemi,
                        axes             = ax,
                        figure           = fig,
@@ -146,10 +148,6 @@ for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
                        colorbar         = True,
                        vmax             = vmax,
                        symmetric_cbar   = 'auto',)
-#cbar_ax = fig.add_axes([0.92,bottom,0.01,top - bottom])
-#cbar    = fig.colorbar(im,cax = cbar_ax)
-#cbar.set_ticks(np.array([0,vmax]))
-#cbar.set_ticklabels(np.array([0,vmax],dtype = str))
 fig.savefig(os.path.join(figure_group_average_dir,'group average.jpg'),
             bbox_inches = 'tight')
 plt.close('all')
@@ -169,7 +167,7 @@ for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
     hemi            = row['hemisphere']
     title           = row['title']
     
-    brain_map_in_surf = vol_to_surf(image_for_plot,surf_mesh,radius = radius,)
+    brain_map_in_surf = vol_to_surf(image_for_plot,surf_mesh,radius = 2,)
     plot_surf_stat_map(surf_mesh,
                        brain_map_in_surf,
                        bg_map           = bg_map,
@@ -182,10 +180,6 @@ for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
                        colorbar         = True,
                        vmax             = vmax,
                        symmetric_cbar   = 'auto',)
-#cbar_ax = fig.add_axes([0.92,bottom,0.01,top - bottom])
-#cbar    = fig.colorbar(im,cax = cbar_ax)
-#cbar.set_ticks(np.array([0,vmax]))
-#cbar.set_ticklabels(np.array([0,vmax],dtype = str))
 fig.savefig(os.path.join(figure_stat_dir,'group average p values.jpg'),
             bbox_inches = 'tight')
 plt.close('all')

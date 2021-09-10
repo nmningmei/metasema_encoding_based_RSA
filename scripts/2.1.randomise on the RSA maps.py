@@ -14,16 +14,17 @@ import pandas as pd
 from glob import glob
 from tqdm import tqdm
 from itertools import product
-from nilearn.image import concat_imgs,mean_img
 from nilearn.datasets import fetch_surf_fsaverage
 from nilearn.input_data import NiftiMasker
-
-from utils import nipype_fsl_randomise
+from utils import nipype_fsl_randomise,load_data_for_randomise
 
 
 radius              = 10
 rerun_randomise     = False
-folder_name         = f'RSA_basedline_average_{radius}mm_standard'
+folder_name         = f'encoding_based_RSA_{radius}mm' # we change this accordingly
+# RSA_basedline_average_{radius}mm_standard
+# encoding_based_RSA_{radius}mm
+# encoding
 working_dir         = f'../results/{folder_name}'
 standard_brain_mask = '../data/standard_brain/MNI152_T1_2mm_brain_mask_dil.nii.gz'
 conditions          = ['read','reenact']
@@ -58,17 +59,13 @@ for (model_name,condition) in iterator:
                                                 f'*{condition}*{model_name}*nii.gz')
                                     )
                                 )
-    concat_images   = concat_imgs(working_data)
-    # mask the output before we conduct statistical inference
-    data                = masker.transform(concat_images)
+    data = load_data_for_randomise(working_data,
+                                   folder_name,
+                                   masker,
+                                   return_tanh = True,)
+    data = np.squeeze(data)
     image_for_randomise = masker.inverse_transform(data)
-    image_for_plot      = mean_img(image_for_randomise)
-    data                = masker.transform(image_for_plot)
-    # convert data to z scores
-    data                = np.arctanh(data)
-    # exclude negative correlation coefficients
-    data[0 > data]      = 0
-    image_for_plot      = masker.inverse_transform(data)
+    image_for_plot      = masker.inverse_transform(np.mean(data,axis = 0))
     
     # left
     df['surf_mesh'              ].append(fsaverage.infl_left)
@@ -77,7 +74,7 @@ for (model_name,condition) in iterator:
     df['title'                  ].append(f'{condition_map[condition]}, {model_name_map[model_name]}')
     df['stat_brain_map_standard'].append(image_for_plot)
     df['randomise_brain_map'    ].append(image_for_randomise)
-    
+    iterator.set_description(f'{condition} {model_name} {data.shape}')
 df = pd.DataFrame(df)
 
 # randomise
@@ -86,7 +83,7 @@ temp_dir = 'temp'
 if not os.path.exists(temp_dir):
     os.mkdir(temp_dir)
 
-idx = 0 # change idx
+idx = 4 # change idx
 row = df.iloc[idx,:]
 maps_for_randomise = row['randomise_brain_map']
 condition,model_name = row['title'].split(', ')

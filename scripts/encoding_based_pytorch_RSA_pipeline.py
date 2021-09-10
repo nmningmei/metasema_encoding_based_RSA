@@ -11,7 +11,7 @@ Link:https://www.biorxiv.org/content/10.1101/2020.06.15.153247v2.full.pdf
 
 """
 
-import os,gc
+import os,gc,torch
 
 import numpy  as np
 import pandas as pd
@@ -21,19 +21,22 @@ from glob import glob
 from nilearn.input_data import NiftiMasker
 from nilearn.datasets   import load_mni152_template,load_mni152_brain_mask
 from joblib             import Parallel,delayed
-from sklearn            import linear_model,preprocessing,metrics,model_selection as skms
-from sklearn.pipeline   import make_pipeline
+from sklearn            import preprocessing,metrics,model_selection as skms
 
 from scipy.spatial             import distance
 from nilearn.image             import new_img_like
 from brainiak.searchlight.searchlight import Searchlight
 from brainiak.searchlight.searchlight import Ball
+from torch import nn,optim
 
 from utils import (load_event_files,
                    load_computational_features,
                    groupby_average,
                    searchlight_function_unit,
                    feature_normalize)
+
+from utils_deep import (ridge,
+                        ridge_train_valid)
 
 def score_func(y, y_pred,tol = 1e-2,func = np.mean,is_train = True):
     # compute the raw R2 score for each voxel
@@ -92,13 +95,13 @@ def _searchligh_RSA(input_image,
     """
     print('run RSA')
     sl = Searchlight(sl_rad                         = sl_rad, 
-                     max_blk_edge                   = max_blk_edge, 
-                     shape                          = shape,
-                     min_active_voxels_proportion   = min_active_voxels_proportion,
-                     )
+                      max_blk_edge                   = max_blk_edge, 
+                      shape                          = shape,
+                      min_active_voxels_proportion   = min_active_voxels_proportion,
+                      )
     # this is where the searchlight will be moving on
     sl.distribute([np.asanyarray(input_image.dataobj)], 
-                   np.asanyarray(whole_brain_mask.dataobj) == 1)
+                    np.asanyarray(whole_brain_mask.dataobj) == 1)
     # this is used by all the searchlights
     sl.broadcast(computational_model_RDM)
     # run searchlight algorithm
@@ -118,11 +121,21 @@ if __name__ == "__main__":
     n_jobs              = 6 # change n_jobs
     alpha_max           = 5 # change alpha
     radius              = 10 # sphere radius
+    device              = 'cpu' # the model will break my GPU
+    dropout_rate        = 0.9
+    batch_size          = 8
+    learning_rate       = 1e-3
+    patience            = 5
+    epochs              = int(3e3)
+    tol                 = 1e-4
+    l2_term             = 1e-2
+    print_train         = True # verbose
     working_dir         = f'../results/Searchlight_standard/{sub}'
     event_dir           = f'../data/Searchlight/{sub}'
     mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
     folder_name         = f'encoding_based_RSA_{radius}mm'
     output_dir          = f'../results/{folder_name}'
+    model_dir           = f'../models/{folder_name}'
     whole_brain_data    = np.sort(glob(os.path.join(working_dir,'*.nii.gz')))
     events              = np.sort(glob(os.path.join(event_dir,'while_brain_bold_stacked.csv')))
     whole_brain_mask    = load_mni152_brain_mask()
@@ -133,6 +146,8 @@ if __name__ == "__main__":
     # make folder for the encoding maps - as a basline for RSA
     if not os.path.exists(output_dir.replace(f'encoding_based_RSA_{radius}mm','encoding')):
         os.mkdir(output_dir.replace(f'encoding_based_RSA_{radius}mm','encoding'))
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
     
     if not os.path.exists(
             os.path.join(os.path.join(output_dir,
@@ -174,37 +189,53 @@ if __name__ == "__main__":
         
         # leave one subject out cross validation partitioning
         cv                  = skms.LeaveOneGroupOut()
-        # the linear encoding model
-        linear_reg          = linear_model.Ridge(fit_intercept  = True,
-                                                 normalize      = True,
-                                                 random_state   = 12345,
-                                                 )
-        # a pipeline = scaler + encoding model
-        reg                 = make_pipeline(preprocessing.MinMaxScaler((-1,1)),
-                                            linear_reg,
-                                            )
+        for train,valid in cv.split(features_train,groups = groups_train):
+            train,valid
+        
         # scaler the y that is used in encoding model
-        scaler_brain        = preprocessing.MinMaxScaler((-1,1)).fit(array_train)
+        scaler_feature      = preprocessing.MinMaxScaler((0,1.)).fit(features_train)
+        scaler_brain        = preprocessing.MinMaxScaler((0,1.)).fit(array_train)
+        features_train_normalized = scaler_feature.transform(features_train)
         array_train_normalized = scaler_brain.transform(array_train)
-        # we will cross-validate the alpha value for the ridge regression
-        param_grid          = {'ridge__alpha':np.logspace(2,alpha_max,alpha_max - 2 + 1)}
-        #######################################################################
-        # this part cost lots of memory
-        gc.collect()
-        grid_search         = skms.GridSearchCV(reg,
-                                                param_grid,
-                                                scoring = scorer,
-                                                cv      = skms.LeaveOneGroupOut(),
-                                                verbose = 1,
-                                                n_jobs  = n_jobs,
-                                        )
-        # fit and cross-validate the alpha value with the training data
-        grid_search.fit(features_train,array_train,groups_train)
-        gc.collect()
+        
+        torch.manual_seed(12345)
+        in_features,out_features = features_train.shape[1],array_train.shape[1]
+        ridge_model = ridge(device = device,
+                            dropout_rate = dropout_rate,
+                            in_features = in_features,
+                            out_features = out_features,
+                            )
+        #Loss function
+        loss_func   = nn.BCEWithLogitsLoss()
+        #Optimizer
+        optimizer   = optim.Adam([params for params in ridge_model.parameters()],
+                                  lr = learning_rate,
+                                  weight_decay = l2_term)
+        # train and validate the model
+        ridge_model = ridge_train_valid(
+            ridge_model,
+            loss_func = loss_func,
+            optimizer = optimizer,
+            device = device,
+            f_name = os.path.join(model_dir,f'{condition}_{model_name}_{idx_sub}.pth'),
+            features_train_normalized = features_train_normalized,
+            array_train_normalized = array_train_normalized,
+            train = train,
+            valid = valid,
+            epochs = epochs,
+            tol = tol,
+            patience = patience,
+            batch_size = batch_size,
+            l2_term = 0,
+            print_train = print_train,)
+        
         #######################################################################
         
         # encoding model results
-        array_test_pred         = grid_search.predict(features_test) # we will use this for the RSA as well
+        with torch.no_grad():
+            out_func = nn.Sigmoid()
+            array_test_pred     = out_func(ridge_model(
+                torch.from_numpy(features_test).float())).to('cpu').detach().numpy() # we will use this for the RSA as well
         array_test_normalized   = scaler_brain.transform(array_test)
         encoding_score          = metrics.r2_score(array_test_normalized,
                                                    array_test_pred,

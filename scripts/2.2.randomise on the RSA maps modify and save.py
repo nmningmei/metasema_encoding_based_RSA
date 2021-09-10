@@ -58,22 +58,22 @@ for ii in range(12):
             old_file.close()
         new_file.close()
     new_batch_script_name = os.path.join(scripts_folder,f'RSA{ii}')
-#    content = f"""#!/bin/bash
-##$ -q long.q
-##$ -N Ran{ii}
-##$ -o outputs/out_{ii}.txt
-##$ -e outputs/err_{ii}.txt
-##$ -cwd
-##$ -m be
-##$ -M nmei@bcbl.eu
-##$ -S /bin/bash
-#
-#pwd
-#echo "randomise map {ii}"
-#module load python/python3.6 fsl/6.0.0
-#
-#python "{new_scripts_name.split('/')[-1]}"
-#"""
+#     content = f"""#!/bin/bash
+# #$ -q long.q
+# #$ -N Ran{ii}
+# #$ -o outputs/out_{ii}.txt
+# #$ -e outputs/err_{ii}.txt
+# #$ -cwd
+# #$ -m be
+# #$ -M nmei@bcbl.eu
+# #$ -S /bin/bash
+
+# pwd
+# echo "randomise map {ii}"
+# module load python/python3.6 fsl/6.0.0
+
+# python "{new_scripts_name.split('/')[-1]}"
+# """
 
     content = f"""#!/bin/bash
 #PBS -q bcbl
@@ -107,5 +107,5 @@ with open(f'{scripts_folder}/qsub_jobs.py','a') as f:
         if ii == 0:
             f.write(f'\nos.system("{line}")\n')
         else:
-            f.write(f'time.sleep(3)\nos.system("{line}")\n')
+            f.write(f'time.sleep(.3)\nos.system("{line}")\n')
     f.close()

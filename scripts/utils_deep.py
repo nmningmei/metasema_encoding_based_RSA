@@ -18,8 +18,9 @@ from torch.autograd import Variable
 
 from torchvision.datasets import ImageFolder
 from torchvision          import transforms
-from  torchvision         import models as Tmodels
+from torchvision          import models as Tmodels
 
+from tqdm import tqdm 
 
 softmax_dim = 1
 
@@ -652,3 +653,201 @@ def extract_cv_features(net,
     df = pd.DataFrame(df)
     features = np.array(features)
     return df,features
+
+class ridge(nn.Module):
+    def __init__(self,
+                 device = 'cpu',
+                 dropout_rate = 0.,
+                 in_features = 2000,
+                 out_features = 2000,
+                 ):
+        super(ridge,self).__init__()
+        torch.manual_seed(12345)
+        self.device = device
+        self.dropout_rate = dropout_rate
+        self.in_features = in_features
+        self.out_features = out_features
+        if self.dropout_rate > 0:
+            self.linear_layer = nn.Sequential(
+                                nn.Linear(self.in_features, self.out_features),
+                                nn.Dropout(self.dropout_rate),
+                                ).to(self.device)
+        else:
+            self.linear_layer = nn.Sequential(
+                                nn.Linear(self.in_features, self.out_features),
+                                ).to(self.device)
+    def forward(self,x):
+        out = self.linear_layer(x)
+        return out
+
+def ridge_train_loop(net,
+                     loss_func,
+                     optimizer,
+                     dataloader,
+                     device,
+                     idx_epoch      = 0,
+                     l2_term        = 1e-4,
+                     print_train    = True):
+    """
+    Input
+    ---------
+    net: nn.Module
+        the model for training
+    loss_func: nn.Module
+        the loss function that fits regressions
+    otimizer: torch.optim
+        the optimizer
+    dataloader: torch.util.data.DataLoader
+    device: string or torch.device
+    idx_epoch: int
+    l2_term: float, must be greater than zero
+    print_train: bool
+    
+    """
+    if print_train:
+        iterator = tqdm(enumerate(dataloader))
+    else:
+        iterator = enumerate(dataloader)
+    train_loss = 0.
+    net.to(device).train(True)
+    for ii_train,(_features,_BOLD) in iterator:
+        _features   = Variable(_features.float())
+        _BOLD       = Variable(_BOLD.float())
+        
+        # reset the gradients
+        optimizer.zero_grad()
+        pred        = net(_features)
+        loss_batch  = loss_func(pred.to(device),_BOLD.to(device))
+        if l2_term > 0:
+            weight_norm = torch.norm(list(net.parameters())[0],2)
+            loss_batch += l2_term * weight_norm
+        # backpropagation
+        loss_batch.backward()
+        # modify the weights
+        optimizer.step()
+        # record the training loss of a mini-batch
+        train_loss += loss_batch.data
+        if print_train:
+            iterator.set_description(f'epoch {idx_epoch + 1}-{ii_train + 1:3.0f}/{100*(ii_train+1)/len(dataloader):2.3f}%,loss = {train_loss/(ii_train+1):.6f}')
+    return train_loss / len(dataloader)
+
+def ridge_valid_loop(net,
+                     loss_func,
+                     dataloader,
+                     device,
+                     idx_epoch      = 0,
+                     l2_term        = 1e-4,
+                     print_train    = True):
+    """
+    Input
+    ---------
+    net: nn.Module
+        the model for training
+    loss_func: nn.Module
+        the loss function that fits regressions
+    dataloader: torch.util.data.DataLoader
+    device: string or torch.device
+    idx_epoch: int
+    l2_term: float, must be greater than zero
+    print_train: bool
+    
+    """
+    if print_train:
+        iterator = tqdm(enumerate(dataloader))
+    else:
+        iterator = enumerate(dataloader)
+    valid_loss = 0.
+    net.to(device).eval()
+    with no_grad(): # no gradient compute
+        valid_loss = 0.
+        for ii_valid,(_features,_BOLD) in iterator:
+            _features   = Variable(_features.float())
+            _BOLD       = Variable(_BOLD.float())
+            pred        = net(_features)
+            loss_batch  = loss_func(pred.to(device),_BOLD.to(device))
+            valid_loss  += loss_batch
+    if print_train:
+        print(f'epoch {idx_epoch + 1}-{ii_valid + 1:3.0f}/{100*(ii_valid+1)/len(dataloader):2.3f}%,loss = {valid_loss/(ii_valid+1):.6f}')
+    return valid_loss / len(dataloader)
+
+def ridge_train_valid(net,
+                      loss_func,
+                      optimizer,
+                      features_train_normalized,
+                      array_train_normalized,
+                      train,
+                      valid,
+                      device        = 'cpu',
+                      f_name        = 'tmp.pth',
+                      epochs        = int(3e3),
+                      tol           = 1e-4,
+                      patience      = 5,
+                      batch_size    = 8,
+                      l2_term       = 1e-4,
+                      print_train   = True,
+                      ):
+    """
+    Input
+    --------------------
+    net: nn.Module
+    loss_func: nn.Module
+    optimizer: torch.optim
+    features_train_normalized: ndarray, (n_samples,n_features)
+        should be scaled before fed
+    array_train_normalized: ndarray, (n_samples,n_voxels)
+        should be scaled before fed
+    train: ndarray (n_samples,)
+        train indices
+    valid: ndarray (n_samples,)
+    device: string or torch.device
+    f_name: path-like or string
+    epochs: int
+    tol: float
+    patience: int
+    batch_size: int
+    l2_term: float, much be greater than 0
+    print_train: bool
+    """
+    dataloader_train = data.DataLoader(data.TensorDataset(torch.from_numpy(features_train_normalized[train]),
+                                                          torch.from_numpy(array_train_normalized[train])),
+                                       num_workers = 2,
+                                       batch_size = batch_size,
+                                       shuffle = True)
+    dataloader_valid = data.DataLoader(data.TensorDataset(torch.from_numpy(features_train_normalized[valid]),
+                                                          torch.from_numpy(array_train_normalized[valid])),
+                                       num_workers = 2,
+                                       batch_size = batch_size,
+                                       shuffle = True)
+    best_valid_loss = torch.tensor(float('inf'),dtype = torch.float64)
+    counter = 0
+    for idx_epoch in range(epochs):
+        _ = ridge_train_loop(
+            net,
+            loss_func   = loss_func,
+            optimizer   = optimizer,
+            dataloader  = dataloader_train,
+            device      = device,
+            idx_epoch   = idx_epoch,
+            l2_term     = l2_term,
+            print_train = print_train,
+            )
+        valid_loss = ridge_valid_loop(
+            net,
+            loss_func   = loss_func,
+            dataloader  = dataloader_valid,
+            device      = device,
+            idx_epoch   = idx_epoch,
+            l2_term     = l2_term,
+            print_train = print_train,
+            )
+        # determine stop
+        if torch.abs(best_valid_loss - valid_loss.cpu().clone().detach().type(torch.float64)) > tol:
+            best_valid_loss = valid_loss.cpu().clone().detach().type(torch.float64)
+            torch.save(net,f_name)
+            counter = 0
+        else:
+            net = torch.load(f_name)
+            counter += 1
+        if counter > patience:
+            break
+    return net

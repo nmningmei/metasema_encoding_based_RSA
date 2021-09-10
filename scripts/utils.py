@@ -12,6 +12,7 @@ import pandas as pd
 
 from scipy.spatial import distance
 from scipy.stats   import spearmanr
+from joblib        import Parallel,delayed
 try:
     from nipype.interfaces import fsl
 except Exception as e:
@@ -173,3 +174,31 @@ def load_computational_features(results_dir,model_name):
     filename = os.path.join(directories[model_name],f'{model_name}.csv')
     df = pd.read_csv(filename)
     return df
+
+def load_data_for_randomise(working_data,
+                            folder_name,
+                            masker,
+                            return_tanh = True,):
+    # mask the output before we conduct statistical inference
+    if folder_name == 'encoding':
+        data                = []
+        for item in working_data:
+            try:
+                data.append(masker.transform(item)[0])
+                
+            except:
+                pass
+        data                = np.array(data)
+        data[0 > data]      = 0
+        data_tanh = data.copy()
+    else:
+        gc.collect()
+        data = Parallel(n_jobs = -1, verbose = 1)(delayed(masker.transform)(**{
+            'imgs':item}) for item in working_data)
+        gc.collect()
+        # convert data to z scores
+        if return_tanh:
+            data_tanh       = np.arctanh(data)
+        else:
+            data_tanh       = data.copy()
+    return data_tanh
