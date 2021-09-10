@@ -12,7 +12,7 @@ import pandas as pd
 from shutil import rmtree,copyfile
 from itertools import product
 
-template = 'encoding_based_pytorch_RSA_pipeline.py'
+template = 'encoding_based_pytorch_FS_RSA_pipeline.py'
 working_dir = '../data/Searchlight'
 subjects = os.listdir(working_dir)
 model_names = ['vgg19','mobilenet','resnet50','fasttext','glove','word2vec']

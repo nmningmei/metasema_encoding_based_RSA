@@ -33,7 +33,7 @@ for item in glob('core.*'):
     os.system(f'rm {item}')
 
 radius              = 10
-folder_name         = f'encoding_based_RSA_{radius}mm' # we change this accordingly
+folder_name         = f'encoding' # we change this accordingly
 # RSA_basedline_average_{radius}mm_standard
 # encoding_based_RSA_{radius}mm
 # encoding
@@ -62,6 +62,7 @@ for f in [randomise_dir,figure_group_average_dir,figure_stat_dir]:
         os.mkdir(f)
 
 df = dict(surf_mesh                 = [],
+          stat_mesh                 = [],
           bg_map                    = [],
           hemisphere                = [],
           title                     = [],
@@ -85,6 +86,7 @@ for (model_name,condition) in iterator:
     
     # left
     df['surf_mesh'              ].append(fsaverage.infl_left)
+    df['stat_mesh'              ].append(fsaverage.pial_left)
     df['bg_map'                 ].append(fsaverage.sulc_left)
     df['hemisphere'             ].append('left')
     df['title'                  ].append(f'{condition_map[condition]}, {model_name_map[model_name]}')
@@ -93,6 +95,7 @@ for (model_name,condition) in iterator:
     
     # right
     df['surf_mesh'              ].append(fsaverage.infl_right)
+    df['stat_mesh'              ].append(fsaverage.pial_right)
     df['bg_map'                 ].append(fsaverage.sulc_right)
     df['hemisphere'             ].append('right')
     df['title'                  ].append(None)
@@ -131,11 +134,12 @@ fig,axes = plt.subplots(figsize     = (4 * 4,6 * 3),
 for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
     image_for_plot  = row['stat_brain_map_standard']
     surf_mesh       = row['surf_mesh']
+    stat_mesh       = row['stat_mesh']
     bg_map          = row['bg_map']
     hemi            = row['hemisphere']
     title           = row['title']
     
-    brain_map_in_surf = vol_to_surf(image_for_plot,surf_mesh,radius = 2,)
+    brain_map_in_surf = vol_to_surf(image_for_plot,stat_mesh,radius = 2,)
     plot_surf_stat_map(surf_mesh,
                        brain_map_in_surf,
                        bg_map           = bg_map,
