@@ -21,7 +21,7 @@ from utils import nipype_fsl_randomise,load_data_for_randomise
 
 radius              = 10
 rerun_randomise     = False
-folder_name         = f'encoding_based_RSA_{radius}mm' # we change this accordingly
+folder_name         = f'encoding_based_FS_RSA_{radius}mm' # we change this accordingly
 # RSA_basedline_average_{radius}mm_standard
 # encoding_based_RSA_{radius}mm
 # encoding
@@ -66,7 +66,6 @@ for (model_name,condition) in iterator:
     data = np.squeeze(data)
     image_for_randomise = masker.inverse_transform(data)
     image_for_plot      = masker.inverse_transform(np.mean(data,axis = 0))
-    
     # left
     df['surf_mesh'              ].append(fsaverage.infl_left)
     df['bg_map'                 ].append(fsaverage.sulc_left)
@@ -75,6 +74,7 @@ for (model_name,condition) in iterator:
     df['stat_brain_map_standard'].append(image_for_plot)
     df['randomise_brain_map'    ].append(image_for_randomise)
     iterator.set_description(f'{condition} {model_name} {data.shape}')
+    
 df = pd.DataFrame(df)
 
 # randomise

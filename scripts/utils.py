@@ -175,6 +175,14 @@ def load_computational_features(results_dir,model_name):
     df = pd.read_csv(filename)
     return df
 
+def define_label_map(one_hot = True):
+    if one_hot:
+        return {'animal':[0,1],
+                'tool'  :[1,0]}
+    else:
+        return {'animal':0,
+                'tool'  :1}
+
 def load_data_for_randomise(working_data,
                             folder_name,
                             masker,

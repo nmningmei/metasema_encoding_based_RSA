@@ -19,9 +19,9 @@ w2v_model_names = ['fasttext','glove','word2vec']
 conditions = ['read','reenact']
 
 node = 1
-core = 16
-mem = 4 * node * core
-cput = 24 * node * core
+core = 12
+mem = 4
+cput = 24
 
 #############
 scripts_folder = 'randomise'
@@ -78,9 +78,9 @@ for ii in range(12):
     content = f"""#!/bin/bash
 #PBS -q bcbl
 #PBS -l nodes={node}:ppn={core}
-#PBS -l mem={mem}gb
-#PBS -l cput={cput}:00:00
-#PBS -N RSA{ii+1}
+#PBS -l mem={mem*core*node}gb
+#PBS -l cput={cput*core*node}:00:00
+#PBS -N RSA{ii}
 #PBS -o outputs/out_{ii}.txt
 #PBS -e outputs/err_{ii}.txt
 
@@ -93,6 +93,28 @@ pwd
 echo {new_scripts_name.split('/')[-1]}
 python "{new_scripts_name.split('/')[-1]}"
     """
+    
+#    content = f"""#!/bin/bash
+##SBATCH --partition=regular
+##SBATCH --job-name=RSA{ii}
+##SBATCH --cpus-per-task={core}
+##SBATCH --nodes={node}
+##SBATCH --ntasks-per-node=1
+##SBATCH --time={cput}:00:00
+##SBATCH --mem-per-cpu={mem}G
+##SBATCH --output=outputs/out_{ii}.txt
+##SBATCH --error=outputs/err_{ii}.txt
+##SBATCH --mail-user=nmei@bcbl.eu
+#
+#module load FSL/6.0.0-foss-2018b
+#export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
+#source activate keras-2.1.6_tensorflow-2.0.0
+#cd $SLURM_SUBMIT_DIR
+#
+#pwd
+#echo {new_scripts_name.split('/')[-1]}
+#python "{new_scripts_name.split('/')[-1]}"
+#    """
     print(content)
     with open(new_batch_script_name,'w') as f:
         f.write(content)

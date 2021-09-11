@@ -12,7 +12,7 @@ import pandas as pd
 from shutil import rmtree,copyfile
 from itertools import product
 
-template = 'encoding_based_pytorch_FS_RSA_pipeline.py'
+template = 'decoding_based_RSA_pipeline_baseline.py'
 working_dir = '../data/Searchlight'
 subjects = os.listdir(working_dir)
 model_names = ['vgg19','mobilenet','resnet50','fasttext','glove','word2vec']
@@ -22,11 +22,11 @@ df_iteration = pd.DataFrame(list(product(subjects,model_names,conditions)),
 
 node = 1
 core = 16
-mem = 6 * node * core
-cput = 24 * node * core
+mem = 6
+cput = 24
 
 #############
-scripts_folder = 'ENRSA'
+scripts_folder = 'DRSA'
 if not os.path.exists(scripts_folder):
     os.mkdir(scripts_folder)
 else:
@@ -75,9 +75,9 @@ for ii,row in df_iteration.iterrows():
     content = f"""#!/bin/bash
 #PBS -q bcbl
 #PBS -l nodes={node}:ppn={core}
-#PBS -l mem={mem}gb
-#PBS -l cput={cput}:00:00
-#PBS -N enRSA{ii}
+#PBS -l mem={mem*node*core}gb
+#PBS -l cput={cput*node*core}:00:00
+#PBS -N {scripts_folder}{ii}
 #PBS -o outputs/out_{ii}.txt
 #PBS -e outputs/err_{ii}.txt
 cd $PBS_O_WORKDIR
@@ -87,6 +87,27 @@ pwd
 echo {new_scripts_name.split('/')[-1]}
 python "{new_scripts_name.split('/')[-1]}"
 """
+#     content = f"""#!/bin/bash
+# #SBATCH --partition=regular
+# #SBATCH --job-name=RSA{ii}
+# #SBATCH --cpus-per-task={core}
+# #SBATCH --nodes={node}
+# #SBATCH --ntasks-per-node=1
+# #SBATCH --time={cput}:00:00
+# #SBATCH --mem-per-cpu={mem}G
+# #SBATCH --output=outputs/out_{ii}.txt
+# #SBATCH --error=outputs/err_{ii}.txt
+# #SBATCH --mail-user=nmei@bcbl.eu
+
+# module load FSL/6.0.0-foss-2018b
+# export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
+# source activate keras-2.1.6_tensorflow-2.0.0
+# cd $SLURM_SUBMIT_DIR
+
+# pwd
+# echo {new_scripts_name.split('/')[-1]}
+# python "{new_scripts_name.split('/')[-1]}"
+#     """
     print(content)
     with open(new_batch_script_name,'w') as f:
         f.write(content)

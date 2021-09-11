@@ -8,10 +8,10 @@ Created on Sat Aug 28 07:16:44 2021
 Title:Beyond category-supervision: instance-level contrastive learning models predict human visual system responses to objects
 Link:https://www.biorxiv.org/content/10.1101/2020.06.15.153247v2.full.pdf
 
-voxel selection based on the encoding results
+
 """
 
-import os,gc,torch
+import os,gc
 
 import numpy  as np
 import pandas as pd
@@ -21,23 +21,21 @@ from glob import glob
 from nilearn.input_data import NiftiMasker
 from nilearn.datasets   import load_mni152_template,load_mni152_brain_mask
 from joblib             import Parallel,delayed
-from sklearn            import preprocessing,metrics,model_selection as skms
+from sklearn            import linear_model,preprocessing,feature_selection,metrics,model_selection as skms
+from sklearn.pipeline   import make_pipeline
 
+from functools                 import partial
 from scipy.spatial             import distance
 from nilearn.image             import new_img_like
 from brainiak.searchlight.searchlight import Searchlight
 from brainiak.searchlight.searchlight import Ball
 
-from torch import nn,optim
-
 from utils import (load_event_files,
                    load_computational_features,
                    groupby_average,
                    searchlight_function_unit,
-                   feature_normalize)
-
-from utils_deep import (ridge,
-                        ridge_train_valid)
+                   feature_normalize,
+                   define_label_map)
 
 def score_func(y, y_pred,tol = 1e-2,func = np.mean,is_train = True):
     # compute the raw R2 score for each voxel
@@ -96,13 +94,13 @@ def _searchligh_RSA(input_image,
     """
     print('run RSA')
     sl = Searchlight(sl_rad                         = sl_rad, 
-                      max_blk_edge                   = max_blk_edge, 
-                      shape                          = shape,
-                      min_active_voxels_proportion   = min_active_voxels_proportion,
-                      )
+                     max_blk_edge                   = max_blk_edge, 
+                     shape                          = shape,
+                     min_active_voxels_proportion   = min_active_voxels_proportion,
+                     )
     # this is where the searchlight will be moving on
     sl.distribute([np.asanyarray(input_image.dataobj)], 
-                    np.asanyarray(whole_brain_mask.dataobj) == 1)
+                   np.asanyarray(whole_brain_mask.dataobj) == 1)
     # this is used by all the searchlights
     sl.broadcast(computational_model_RDM)
     # run searchlight algorithm
@@ -119,24 +117,14 @@ if __name__ == "__main__":
     idx_sub             = '123' # change sub
     condition           = 'read' # change condition
     model_name          = 'mobilenet' # change model_name
-    n_jobs              = 6 # change n_jobs
+    n_jobs              = -1 # change n_jobs
     alpha_max           = 5 # change alpha
     radius              = 10 # sphere radius
-    device              = 'cpu' # the model will break my GPU
-    dropout_rate        = 0.9
-    batch_size          = 8
-    learning_rate       = 1e-3
-    patience            = 5
-    epochs              = int(3e3)
-    tol                 = 1e-4
-    l2_term             = 1e-2
-    print_train         = True # verbose
     working_dir         = f'../results/Searchlight_standard/{sub}'
     event_dir           = f'../data/Searchlight/{sub}'
     mask_dir            = f'../data/masks_and_transformation_matrices/{sub}'
-    folder_name         = f'encoding_based_FS_RSA_{radius}mm'
+    folder_name         = f'decoding_based_RSA_{radius}mm'
     output_dir          = f'../results/{folder_name}'
-    model_dir           = f'../models/{folder_name}'
     whole_brain_data    = np.sort(glob(os.path.join(working_dir,'*.nii.gz')))
     events              = np.sort(glob(os.path.join(event_dir,'while_brain_bold_stacked.csv')))
     whole_brain_mask    = load_mni152_brain_mask()
@@ -147,8 +135,6 @@ if __name__ == "__main__":
     # make folder for the encoding maps - as a basline for RSA
     if not os.path.exists(output_dir.replace(f'encoding_based_RSA_{radius}mm','encoding')):
         os.mkdir(output_dir.replace(f'encoding_based_RSA_{radius}mm','encoding'))
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
     
     if not os.path.exists(
             os.path.join(os.path.join(output_dir,
@@ -182,6 +168,7 @@ if __name__ == "__main__":
         df_data_train       = df_data[idx_train]
         features_train      = np.array([df_features[item] for item in df_data_train['words'].values])
         groups_train        = df_data_train['sub'].values
+        labels_train        = df_data_train['targets'].map(define_label_map(one_hot = False)).values
         
         array_test          = brain_features[idx_test]
         df_data_test        = df_data[idx_test]
@@ -190,76 +177,49 @@ if __name__ == "__main__":
         
         # leave one subject out cross validation partitioning
         cv                  = skms.LeaveOneGroupOut()
-        for train,valid in cv.split(features_train,groups = groups_train):
-            train,valid
+        mutual_info         = partial(feature_selection.mutual_info_classif,
+                                      random_state = 12345)
+        fs = feature_selection.SelectKBest(mutual_info, k = features_train.shape[1])
+        pipeline = make_pipeline(feature_selection.VarianceThreshold(),
+                                 fs)
         
+        pipeline.fit(array_train,labels_train)
+        
+        # the linear encoding model
+        linear_reg          = linear_model.Ridge(fit_intercept  = True,
+                                                 normalize      = True,
+                                                 random_state   = 12345,
+                                                 )
+        # a pipeline = scaler + encoding model
+        reg                 = make_pipeline(preprocessing.MinMaxScaler((-1,1)),
+                                            linear_reg,
+                                            )
         # scaler the y that is used in encoding model
-        scaler_feature      = preprocessing.MinMaxScaler((0,1.)).fit(features_train)
-        scaler_brain        = preprocessing.MinMaxScaler((0,1.)).fit(array_train)
-        features_train_normalized = scaler_feature.transform(features_train)
-        array_train_normalized = scaler_brain.transform(array_train)
-        
-        torch.manual_seed(12345)
-        in_features,out_features = features_train.shape[1],array_train.shape[1]
-        ridge_model = ridge(device = device,
-                            dropout_rate = dropout_rate,
-                            in_features = in_features,
-                            out_features = out_features,
-                            )
-        #Loss function
-        loss_func   = nn.BCEWithLogitsLoss()
-        #Optimizer
-        optimizer   = optim.Adam([params for params in ridge_model.parameters()],
-                                  lr = learning_rate,
-                                  weight_decay = l2_term)
-        # train and validate the model
-        if not os.path.exists(os.path.join(model_dir,
-                                           f'{condition}_{model_name}_{idx_sub}.pth')):
-            ridge_model = ridge_train_valid(
-                ridge_model,
-                loss_func                   = loss_func,
-                optimizer                   = optimizer,
-                device                      = device,
-                f_name                      = os.path.join(model_dir,
-                                                           f'{condition}_{model_name}_{idx_sub}.pth'),
-                features_train_normalized   = features_train_normalized,
-                array_train_normalized      = array_train_normalized,
-                train                       = train,
-                valid                       = valid,
-                epochs                      = epochs,
-                tol                         = tol,
-                patience                    = patience,
-                batch_size                  = batch_size,
-                l2_term                     = 0,# L2 is defined in the optimizer
-                print_train                 = print_train,)
-        else:
-            ridge_model = torch.load(os.path.join(model_dir,
-                                                  f'{condition}_{model_name}_{idx_sub}.pth'))
-        for params in ridge_model.parameters():
-            params.requires_grad = False
+        scaler_brain        = preprocessing.MinMaxScaler((-1,1)).fit(
+                                    pipeline.transform(array_train)
+                                    )
+        array_train_normalized = scaler_brain.transform(pipeline.transform(array_train))
+        # we will cross-validate the alpha value for the ridge regression
+        param_grid          = {'ridge__alpha':np.logspace(2,alpha_max,alpha_max - 2 + 1)}
         #######################################################################
-        with torch.no_grad():
-            out_func = nn.Sigmoid()
-            array_train_pred = out_func(ridge_model(
-                    torch.from_numpy(features_train).float())).to('cpu').detach().numpy()
-            encoding_score = metrics.r2_score(array_train_normalized,
-                                              array_train_pred,
-                                              multioutput = 'raw_values')
-        # voxel secltion based on the encoding scores of the training data
-        n_positive = np.sum(encoding_score > 0)
-        if n_positive > 0:
-            idx_voxels, = np.where(encoding_score > 0)
-        else:
-            idx_voxels = np.argpartition(encoding_score,-300)[-300:]
-        # encoding model results
-        with torch.no_grad():
-            out_func = nn.Sigmoid()
-            array_test_pred     = out_func(ridge_model(
-                torch.from_numpy(features_test).float())).to('cpu').detach().numpy() # we will use this for the RSA as well
-        array_test_normalized   = scaler_brain.transform(array_test)
+        # this part cost lots of memory
+        gc.collect()
+        grid_search         = skms.GridSearchCV(reg,
+                                                param_grid,
+                                                scoring = scorer,
+                                                cv      = skms.LeaveOneGroupOut(),
+                                                verbose = 1,
+                                                n_jobs  = n_jobs,
+                                        )
+        # fit and cross-validate the alpha value with the training data
+        grid_search.fit(features_train,array_train_normalized,groups_train)
+        gc.collect()
+        #######################################################################
         
-        # select the voxels
-        array_test_normalized = array_test_normalized[:,idx_voxels]
+        # predict the responses
+        array_test_pred         = grid_search.predict(features_test) # we will use this for the RSA as well
+#        array_test_normalized   = scaler_brain.transform(array_test)
+        
         #######################################################################
         # now make sure we are working on the testing subject #################
         #######################################################################
@@ -267,7 +227,7 @@ if __name__ == "__main__":
         #######################################################################
         
         # average predicted responses and the brain responeses for each word
-        temp,df_average = groupby_average([array_test_pred,array_test_normalized],
+        temp,df_average = groupby_average([array_test,array_test_pred],
                                           df_data_test.reset_index(drop = True),
                                           groupby = ['words'])
         
