@@ -144,7 +144,7 @@ for ax,(ii_row,row) in zip(axes.flatten(),df.iterrows()):
     plot_surf_stat_map(surf_mesh,
                        brain_map_in_surf,
                        bg_map           = bg_map,
-                       threshold        = 1e-6,
+                       threshold        = 3e-3,
                        hemi             = hemi,
                        axes             = ax,
                        figure           = fig,

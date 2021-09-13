@@ -12,7 +12,7 @@ import pandas as pd
 from shutil import rmtree,copyfile
 from itertools import product
 
-template = 'decoding_based_RSA_pipeline_baseline.py'
+template = 'encoding_based_pytorch_pairwise_RSA_pipeline.py'
 working_dir = '../data/Searchlight'
 subjects = os.listdir(working_dir)
 model_names = ['vgg19','mobilenet','resnet50','fasttext','glove','word2vec']
@@ -26,7 +26,7 @@ mem = 6
 cput = 24
 
 #############
-scripts_folder = 'DRSA'
+scripts_folder = 'ENPRSA'
 if not os.path.exists(scripts_folder):
     os.mkdir(scripts_folder)
 else:

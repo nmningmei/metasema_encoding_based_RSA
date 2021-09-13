@@ -150,3 +150,7 @@ data/Searchlight
 scripts/Erandomise
 # bash folder
 scripts/DRSA
+# bash folder
+scripts/ENPRSA
+#bash folder
+scripts/Drandomise

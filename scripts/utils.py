@@ -39,14 +39,14 @@ def feature_normalize(features):
     features = features - features.mean(1).reshape(-1,1)
     return features
 
-def searchlight_function_unit(shpere_bold_signals, mask, myrad, broadcast_variable):
+def searchlight_function_unit(sphere_bold_singals, mask, myrad, broadcast_variable):
     """
-    shpere_bold_signals: BOLD
+    sphere_bold_singals: BOLD
     mask: mask array
     myrad: not use
     broadcast_variable: label -- features RDM
     """
-    BOLD    = shpere_bold_signals[0][mask,:].T.copy()
+    BOLD    = sphere_bold_singals[0][mask,:].T.copy()
     RDM_y   = broadcast_variable.copy()
 #    print(BOLD.shape)
     # pearson correlation
