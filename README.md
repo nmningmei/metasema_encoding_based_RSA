@@ -36,3 +36,8 @@
 | Correlation | Randomise p values|
 |:---: | :---:|
 |<img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/decoding_based_RSA_10mm_group_average/group%20average.jpg" width="400"   height="400" title="RSA grouped average, N = 27">|<img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/decoding_based_RSA_10mm_randomise/group%20average%20p%20values.jpg" width="400"   height="400" title="Permutation one-sample group test, TFCE corrected">|
+
+## Group-level average - 10mm encoding-based brain-to-brain RSA
+| Correlation | Randomise p values|
+|:---: | :---:|
+|<img src="https://github.com/nmningmei/metasema_encoding_based_RSA/blob/main/figures/encoding_based_2brains_RSA_10mm_group_average/group%20average.jpg" width="400"   height="400" title="RSA grouped average, N = 27">|Running...|
