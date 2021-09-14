@@ -33,12 +33,13 @@ for item in glob('core.*'):
     os.system(f'rm {item}')
 
 radius              = 10
-folder_name         = f'decoding_based_RSA_{radius}mm' # we change this accordingly
+folder_name         = f'encoding_based_2brains_RSA_10mm' # we change this accordingly
 # RSA_basedline_average_{radius}mm_standard
 # encoding_based_RSA_{radius}mm
 # encoding
 # encoding_based_FS_RSA_{radius}mm
 # decoding_based_RSA_{radius}mm
+# encoding_based_2brains_RSA_10mm
 working_dir         = f'../results/{folder_name}'
 standard_brain_mask = '../data/standard_brain/MNI152_T1_2mm_brain_mask_dil.nii.gz'
 conditions          = ['read','reenact']
