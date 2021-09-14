@@ -24,7 +24,7 @@ mem = 4
 cput = 24
 
 #############
-scripts_folder = 'Drandomise'
+scripts_folder = 'randomise'
 if not os.path.exists(scripts_folder):
     os.mkdir(scripts_folder)
 else:
@@ -58,22 +58,22 @@ for ii in range(12):
             old_file.close()
         new_file.close()
     new_batch_script_name = os.path.join(scripts_folder,f'RSA{ii}')
-#    content = f"""#!/bin/bash
-##$ -q long.q
-##$ -N Ran{ii}
-##$ -o outputs/out_{ii}.txt
-##$ -e outputs/err_{ii}.txt
-##$ -cwd
-##$ -m be
-##$ -M nmei@bcbl.eu
-##$ -S /bin/bash
-#
-#pwd
-#echo "randomise map {ii}"
-#module load python/python3.6 fsl/6.0.0
-#
-#python "{new_scripts_name.split('/')[-1]}"
-#"""
+    content = f"""#!/bin/bash
+#$ -q long.q
+#$ -N Ran{ii}
+#$ -o outputs/out_{ii}.txt
+#$ -e outputs/err_{ii}.txt
+#$ -cwd
+#$ -m be
+#$ -M nmei@bcbl.eu
+#$ -S /bin/bash
+
+pwd
+echo "randomise map {ii}"
+module load python/python3.6 fsl/6.0.0
+
+python "{new_scripts_name.split('/')[-1]}"
+"""
 
 #    content = f"""#!/bin/bash
 ##PBS -q bcbl
@@ -94,32 +94,32 @@ for ii in range(12):
 #python "{new_scripts_name.split('/')[-1]}"
 #    """
     
-    content = f"""#!/bin/bash
-#SBATCH --partition=regular
-#SBATCH --job-name=RSA{ii}
-#SBATCH --cpus-per-task={core}
-#SBATCH --nodes={node}
-#SBATCH --ntasks-per-node=1
-#SBATCH --time={cput}:00:00
-#SBATCH --mem-per-cpu={mem}G
-#SBATCH --output=outputs/out_{ii}.txt
-#SBATCH --error=outputs/err_{ii}.txt
-#SBATCH --mail-user=nmei@bcbl.eu
-
-source /scratch/ningmei/anaconda3/etc/profile.d/conda.sh
-source activate keras-2.1.6_tensorflow-2.0.0
-module load FSL/6.0.0-foss-2018b
-cd $SLURM_SUBMIT_DIR
-
-pwd
-echo {new_scripts_name.split('/')[-1]}
-python "{new_scripts_name.split('/')[-1]}"
-    """
+#    content = f"""#!/bin/bash
+##SBATCH --partition=regular
+##SBATCH --job-name=RSA{ii}
+##SBATCH --cpus-per-task={core}
+##SBATCH --nodes={node}
+##SBATCH --ntasks-per-node=1
+##SBATCH --time={cput}:00:00
+##SBATCH --mem-per-cpu={mem}G
+##SBATCH --output=outputs/out_{ii}.txt
+##SBATCH --error=outputs/err_{ii}.txt
+##SBATCH --mail-user=nmei@bcbl.eu
+#
+#source /scratch/ningmei/anaconda3/etc/profile.d/conda.sh
+#source activate keras-2.1.6_tensorflow-2.0.0
+#module load FSL/6.0.0-foss-2018b
+#cd $SLURM_SUBMIT_DIR
+#
+#pwd
+#echo {new_scripts_name.split('/')[-1]}
+#python "{new_scripts_name.split('/')[-1]}"
+#    """
     print(content)
     with open(new_batch_script_name,'w') as f:
         f.write(content)
         f.close()
-    collections.append(f"qsub RSA{ii}")
+    collections.append(f"sbatch RSA{ii}")
 
 with open(f'{scripts_folder}/qsub_jobs.py','w') as f:
     f.write("""import os\nimport time""")
