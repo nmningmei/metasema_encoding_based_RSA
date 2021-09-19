@@ -33,7 +33,7 @@ for item in glob('core.*'):
     os.system(f'rm {item}')
 
 radius              = 10
-folder_name         = f'encoding_based_FS_RSA_10mm' # we change this accordingly
+folder_name         = f'encoding_based_2brains_RSA_10mm' # we change this accordingly
 # RSA_basedline_average_{radius}mm_standard
 # encoding_based_RSA_{radius}mm
 # encoding

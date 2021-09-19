@@ -21,7 +21,7 @@ from utils import nipype_fsl_randomise,load_data_for_randomise
 
 radius              = 10
 rerun_randomise     = False
-folder_name         = f'encoding_based_FS_RSA_{radius}mm' # we change this accordingly
+folder_name         = f'encoding_based_2brains_RSA_10mm' # we change this accordingly
 # RSA_basedline_average_{radius}mm_standard
 # encoding_based_RSA_{radius}mm
 # encoding

@@ -72,47 +72,47 @@ for ii,row in df_iteration.iterrows():
             old_file.close()
         new_file.close()
     new_batch_script_name = os.path.join(scripts_folder,f'enRSA{ii}')
+#    content = f"""#!/bin/bash
+##PBS -q bcbl
+##PBS -l nodes={node}:ppn={core}
+##PBS -l mem={mem*node*core}gb
+##PBS -l cput={cput*node*core}:00:00
+##PBS -N {scripts_folder}{ii}
+##PBS -o outputs/out_{ii}.txt
+##PBS -e outputs/err_{ii}.txt
+#cd $PBS_O_WORKDIR
+#export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
+#source activate keras-2.1.6_tensorflow-2.0.0
+#pwd
+#echo {new_scripts_name.split('/')[-1]}
+#python "{new_scripts_name.split('/')[-1]}"
+#"""
     content = f"""#!/bin/bash
-#PBS -q bcbl
-#PBS -l nodes={node}:ppn={core}
-#PBS -l mem={mem*node*core}gb
-#PBS -l cput={cput*node*core}:00:00
-#PBS -N {scripts_folder}{ii}
-#PBS -o outputs/out_{ii}.txt
-#PBS -e outputs/err_{ii}.txt
-cd $PBS_O_WORKDIR
-export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
+#SBATCH --partition=regular
+#SBATCH --job-name=RSA{ii}
+#SBATCH --cpus-per-task={core}
+#SBATCH --nodes={node}
+#SBATCH --ntasks-per-node=1
+#SBATCH --time={cput}:00:00
+#SBATCH --mem-per-cpu={mem}G
+#SBATCH --output=outputs/out_{ii}.txt
+#SBATCH --error=outputs/err_{ii}.txt
+#SBATCH --mail-user=nmei@bcbl.eu
+
+source /scratch/ningmei/anaconda3/etc/profile.d/conda.sh
 source activate keras-2.1.6_tensorflow-2.0.0
+module load FSL/6.0.0-foss-2018b
+cd $SLURM_SUBMIT_DIR
+
 pwd
 echo {new_scripts_name.split('/')[-1]}
 python "{new_scripts_name.split('/')[-1]}"
-"""
-#     content = f"""#!/bin/bash
-# #SBATCH --partition=regular
-# #SBATCH --job-name=RSA{ii}
-# #SBATCH --cpus-per-task={core}
-# #SBATCH --nodes={node}
-# #SBATCH --ntasks-per-node=1
-# #SBATCH --time={cput}:00:00
-# #SBATCH --mem-per-cpu={mem}G
-# #SBATCH --output=outputs/out_{ii}.txt
-# #SBATCH --error=outputs/err_{ii}.txt
-# #SBATCH --mail-user=nmei@bcbl.eu
-
-# module load FSL/6.0.0-foss-2018b
-# export PATH="/scratch/ningmei/anaconda3/bin:/scratch/ningmei/anaconda3/condabin:$PATH"
-# source activate keras-2.1.6_tensorflow-2.0.0
-# cd $SLURM_SUBMIT_DIR
-
-# pwd
-# echo {new_scripts_name.split('/')[-1]}
-# python "{new_scripts_name.split('/')[-1]}"
-#     """
+    """
     print(content)
     with open(new_batch_script_name,'w') as f:
         f.write(content)
         f.close()
-    collections.append(f"qsub enRSA{ii}")
+    collections.append(f"sbatch enRSA{ii}")
 
 with open(f'{scripts_folder}/qsub_jobs.py','w') as f:
     f.write("""import os\nimport time""")

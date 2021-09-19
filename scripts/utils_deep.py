@@ -655,18 +655,28 @@ def extract_cv_features(net,
     return df,features
 
 class ridge(nn.Module):
+    """
+    Ridge regression model implemented by pytorch to control for output activity range
+    
+    Input
+    ---------------
+    device: str or torch.device
+    droput_rate: float, [0,1]
+    in_features: int, computational model representations
+    out_features: int, vectorized BOLD signals
+    """
     def __init__(self,
-                 device = 'cpu',
-                 dropout_rate = 0.,
-                 in_features = 2000,
-                 out_features = 2000,
+                 device         = 'cpu',
+                 dropout_rate   = 0.,
+                 in_features    = 2000,
+                 out_features   = 2000,
                  ):
         super(ridge,self).__init__()
         torch.manual_seed(12345)
-        self.device = device
-        self.dropout_rate = dropout_rate
-        self.in_features = in_features
-        self.out_features = out_features
+        self.device         = device
+        self.dropout_rate   = dropout_rate
+        self.in_features    = in_features
+        self.out_features   = out_features
         if self.dropout_rate > 0:
             self.linear_layer = nn.Sequential(
                                 nn.Linear(self.in_features, self.out_features),
@@ -675,6 +685,7 @@ class ridge(nn.Module):
         else:
             self.linear_layer = nn.Sequential(
                                 nn.Linear(self.in_features, self.out_features),
+                                nn.Sigmoid(),
                                 ).to(self.device)
     def forward(self,x):
         out = self.linear_layer(x)
